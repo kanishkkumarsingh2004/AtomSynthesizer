@@ -15,7 +15,6 @@ export const SPDFOrbitalRenderer: React.FC<SPDFOrbitalRendererProps> = ({
   selectedSubshellFilter = 'ALL'
 }) => {
   const groupRef = useRef<THREE.Group>(null);
-
   const timeRef = useRef(0);
 
   // Slow orbital rotation
@@ -73,7 +72,7 @@ export const SPDFOrbitalRenderer: React.FC<SPDFOrbitalRendererProps> = ({
 
         return (
           <group key={`${sub.name}-${idx}`}>
-            {/* s-Orbital: Spherical Shell (l=0) */}
+            {/* s-Orbital: Spherical Shell (l=0) - Solid Blue */}
             {sub.type === 's' && (
               <mesh>
                 <sphereGeometry args={[baseRadius * 0.65, 32, 32]} />
@@ -81,24 +80,21 @@ export const SPDFOrbitalRenderer: React.FC<SPDFOrbitalRendererProps> = ({
                   color="#3b82f6"
                   transparent
                   opacity={0.35}
-                  wireframe={false}
                   side={THREE.DoubleSide}
                 />
               </mesh>
             )}
 
-            {/* p-Orbitals: Dumbbells px, py, pz (l=1) */}
+            {/* p-Orbitals: Dumbbells px, py, pz (l=1) - Both directions SAME Magenta/Pink color */}
             {sub.type === 'p' && (
               <group scale={[baseRadius * 0.6, baseRadius * 0.6, baseRadius * 0.6]}>
                 {/* p_z orbital (vertical Z) */}
                 <group rotation={[0, 0, 0]}>
-                  {/* + Phase Lobe (Pink/Red) */}
                   <mesh geometry={pLobeGeometry}>
                     <meshStandardMaterial color="#ec4899" transparent opacity={0.65} side={THREE.DoubleSide} />
                   </mesh>
-                  {/* - Phase Lobe (Cyan/Blue) */}
                   <mesh geometry={pLobeGeometry} rotation={[Math.PI, 0, 0]}>
-                    <meshStandardMaterial color="#06b6d4" transparent opacity={0.65} side={THREE.DoubleSide} />
+                    <meshStandardMaterial color="#ec4899" transparent opacity={0.65} side={THREE.DoubleSide} />
                   </mesh>
                 </group>
 
@@ -108,7 +104,7 @@ export const SPDFOrbitalRenderer: React.FC<SPDFOrbitalRendererProps> = ({
                     <meshStandardMaterial color="#ec4899" transparent opacity={0.65} side={THREE.DoubleSide} />
                   </mesh>
                   <mesh geometry={pLobeGeometry} rotation={[Math.PI, 0, 0]}>
-                    <meshStandardMaterial color="#06b6d4" transparent opacity={0.65} side={THREE.DoubleSide} />
+                    <meshStandardMaterial color="#ec4899" transparent opacity={0.65} side={THREE.DoubleSide} />
                   </mesh>
                 </group>
 
@@ -118,13 +114,13 @@ export const SPDFOrbitalRenderer: React.FC<SPDFOrbitalRendererProps> = ({
                     <meshStandardMaterial color="#ec4899" transparent opacity={0.65} side={THREE.DoubleSide} />
                   </mesh>
                   <mesh geometry={pLobeGeometry} rotation={[Math.PI, 0, 0]}>
-                    <meshStandardMaterial color="#06b6d4" transparent opacity={0.65} side={THREE.DoubleSide} />
+                    <meshStandardMaterial color="#ec4899" transparent opacity={0.65} side={THREE.DoubleSide} />
                   </mesh>
                 </group>
               </group>
             )}
 
-            {/* d-Orbitals: 4-lobed Cloverleafs & d_z2 Donut (l=2) */}
+            {/* d-Orbitals: 4-lobed Cloverleafs & d_z2 Donut (l=2) - All lobes SAME Purple color */}
             {sub.type === 'd' && (
               <group scale={[baseRadius * 0.75, baseRadius * 0.75, baseRadius * 0.75]}>
                 {/* d_z2: Dumbbell + Torus Donut */}
@@ -138,7 +134,7 @@ export const SPDFOrbitalRenderer: React.FC<SPDFOrbitalRendererProps> = ({
                   {/* Equatorial Donut Ring */}
                   <mesh rotation={[Math.PI / 2, 0, 0]}>
                     <torusGeometry args={[0.5, 0.15, 16, 32]} />
-                    <meshStandardMaterial color="#3b82f6" transparent opacity={0.7} side={THREE.DoubleSide} />
+                    <meshStandardMaterial color="#a855f7" transparent opacity={0.7} side={THREE.DoubleSide} />
                   </mesh>
                 </group>
 
@@ -148,7 +144,7 @@ export const SPDFOrbitalRenderer: React.FC<SPDFOrbitalRendererProps> = ({
                     <group key={i} rotation={[0, 0, rotAngle]}>
                       <mesh geometry={dLobeGeometry}>
                         <meshStandardMaterial
-                          color={i % 2 === 0 ? '#a855f7' : '#22c55e'}
+                          color="#a855f7"
                           transparent
                           opacity={0.65}
                           side={THREE.DoubleSide}
@@ -160,7 +156,7 @@ export const SPDFOrbitalRenderer: React.FC<SPDFOrbitalRendererProps> = ({
               </group>
             )}
 
-            {/* f-Orbitals: 8-Lobed Quantum Spherical Harmonics (l=3) */}
+            {/* f-Orbitals: 8-Lobed Quantum Spherical Harmonics (l=3) - All lobes SAME Emerald Green color */}
             {sub.type === 'f' && (
               <group scale={[baseRadius * 0.85, baseRadius * 0.85, baseRadius * 0.85]}>
                 {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((rotY, i) => (
@@ -169,7 +165,7 @@ export const SPDFOrbitalRenderer: React.FC<SPDFOrbitalRendererProps> = ({
                       <meshStandardMaterial color="#10b981" transparent opacity={0.6} side={THREE.DoubleSide} />
                     </mesh>
                     <mesh geometry={dLobeGeometry} rotation={[Math.PI, 0, 0]}>
-                      <meshStandardMaterial color="#6366f1" transparent opacity={0.6} side={THREE.DoubleSide} />
+                      <meshStandardMaterial color="#10b981" transparent opacity={0.6} side={THREE.DoubleSide} />
                     </mesh>
                   </group>
                 ))}
