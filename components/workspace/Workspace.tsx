@@ -12,9 +12,14 @@ import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useHistoryStore } from '../../stores/historyStore';
 import { useSelectionStore } from '../../stores/selectionStore';
 import { useMoleculeStore } from '../../stores/moleculeStore';
+import { useUIStore } from '../../stores/uiStore';
 
 export const Workspace: React.FC = () => {
   const setActiveTool = useWorkspaceStore((state) => state.setActiveTool);
+  const toggleLivePhysics = useWorkspaceStore((state) => state.toggleLivePhysics);
+  const livePhysicsEnabled = useWorkspaceStore((state) => state.livePhysicsEnabled);
+  const showToast = useUIStore((state) => state.showToast);
+
   const undo = useHistoryStore((state) => state.undo);
   const redo = useHistoryStore((state) => state.redo);
   const selectedAtomIds = useSelectionStore((state) => state.selectedAtomIds);
@@ -48,6 +53,10 @@ export const Workspace: React.FC = () => {
               deleteSelection(selectedAtomIds, selectedBondIds);
               clearSelection();
             }
+          } else if (sc.action === 'toggleLivePhysics') {
+            const nextState = !useWorkspaceStore.getState().livePhysicsEnabled;
+            toggleLivePhysics();
+            showToast(`Live Physics & Thermal Vibrations ${nextState ? 'RESUMED (Active)' : 'PAUSED'}`);
           }
           break;
         }
@@ -56,7 +65,7 @@ export const Workspace: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setActiveTool, undo, redo, selectedAtomIds, selectedBondIds, clearSelection, deleteSelection]);
+  }, [setActiveTool, toggleLivePhysics, livePhysicsEnabled, showToast, undo, redo, selectedAtomIds, selectedBondIds, clearSelection, deleteSelection]);
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-slate-950 text-slate-100 font-sans select-none">

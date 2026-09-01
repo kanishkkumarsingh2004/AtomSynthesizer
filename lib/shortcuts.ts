@@ -5,7 +5,7 @@ export interface ShortcutDefinition {
   ctrlOrCmd?: boolean;
   shift?: boolean;
   tool?: WorkspaceTool;
-  action?: 'undo' | 'redo' | 'deleteSelection' | 'focusSelection';
+  action?: 'undo' | 'redo' | 'deleteSelection' | 'focusSelection' | 'toggleLivePhysics';
   label: string;
 }
 
@@ -20,5 +20,6 @@ export const SHORTCUTS: ShortcutDefinition[] = [
   { key: 'Backspace', label: 'Delete Selected', action: 'deleteSelection' },
   { key: 'z', ctrlOrCmd: true, label: 'Undo', action: 'undo' },
   { key: 'z', ctrlOrCmd: true, shift: true, label: 'Redo', action: 'redo' },
-  { key: 'f', label: 'Focus Selection', action: 'focusSelection' }
+  { key: 'f', label: 'Focus Selection', action: 'focusSelection' },
+  { key: ' ', label: 'Toggle Live Physics & Vibrations (Space)', action: 'toggleLivePhysics' }
 ];
