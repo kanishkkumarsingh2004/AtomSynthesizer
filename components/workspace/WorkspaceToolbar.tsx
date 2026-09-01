@@ -18,7 +18,8 @@ import {
   Flame,
   Zap,
   Sparkles,
-  Activity
+  Activity,
+  Target
 } from 'lucide-react';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useSelectionStore } from '../../stores/selectionStore';
@@ -225,6 +226,19 @@ export const WorkspaceToolbar: React.FC = () => {
         >
           <Layers className="h-3 w-3 text-purple-400" />
           <span className="hidden lg:inline">Quantum Orbits</span>
+        </button>
+
+        {/* Recenter Molecule to Global Origin (0,0,0) */}
+        <button
+          onClick={() => {
+            useMoleculeStore.getState().recenterMolecule();
+            showToast('Recentered molecule to global origin (0, 0, 0)');
+          }}
+          title="Recenter molecule to global origin (0, 0, 0)"
+          className="flex items-center gap-1 rounded bg-slate-900 border border-slate-800 px-2 py-0.5 text-[11px] font-semibold text-cyan-300 hover:bg-slate-800 hover:text-cyan-200"
+        >
+          <Target className="h-3 w-3 text-cyan-400" />
+          <span className="hidden lg:inline">Recenter</span>
         </button>
 
         {/* Explosion Dissociation Physics */}

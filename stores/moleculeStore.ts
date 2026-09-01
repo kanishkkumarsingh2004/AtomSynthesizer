@@ -26,6 +26,7 @@ export interface MoleculeState {
   triggerAutoBonding: () => void;
   optimizeGeometry: () => { initialEnergy: number; finalEnergy: number; steps: number };
   triggerExplosion: () => { energyReleased: number; summary: string };
+  recenterMolecule: () => void;
 }
 
 export const useMoleculeStore = create<MoleculeState>((set, get) => ({
@@ -139,5 +140,36 @@ export const useMoleculeStore = create<MoleculeState>((set, get) => ({
       energyReleased: res.energyReleasedKj,
       summary: res.summary
     };
+  },
+
+  recenterMolecule: () => {
+    const { molecule } = get();
+    if (molecule.atoms.length === 0) return;
+
+    let cx = 0, cy = 0, cz = 0;
+    for (const a of molecule.atoms) {
+      cx += a.position.x;
+      cy += a.position.y;
+      cz += a.position.z;
+    }
+    cx /= molecule.atoms.length;
+    cy /= molecule.atoms.length;
+    cz /= molecule.atoms.length;
+
+    const newAtoms = molecule.atoms.map((atom) => ({
+      ...atom,
+      position: {
+        x: Math.round((atom.position.x - cx) * 1000) / 1000,
+        y: Math.round((atom.position.y - cy) * 1000) / 1000,
+        z: Math.round((atom.position.z - cz) * 1000) / 1000
+      }
+    }));
+
+    set({
+      molecule: {
+        ...molecule,
+        atoms: newAtoms
+      }
+    });
   }
 }));
