@@ -43,13 +43,17 @@ export const useMoleculeStore = create<MoleculeState>((set, get) => ({
     const { molecule } = get();
     const { updatedMolecule, command, atomId } = MoleculeService.addAtom(molecule, atomicNumber, position);
     
-    // Auto-bonding check
+    // Auto-bonding & VSEPR geometry alignment check
     const autoBondEnabled = useWorkspaceStore.getState().autoBondingEnabled;
     let finalMolecule = updatedMolecule;
     if (autoBondEnabled) {
-      const res = AutoBondEngine.autoBondMolecule(updatedMolecule, { toleranceRatio: 1.3 });
+      const res = AutoBondEngine.autoBondMolecule(updatedMolecule, { toleranceRatio: 1.85 });
       finalMolecule = res.updatedMolecule;
     }
+
+    // Always snap into stable VSEPR geometry
+    const optRes = GeometryOptimizationEngine.optimizeGeometry(finalMolecule, 40, 0.12);
+    finalMolecule = optRes.optimizedMolecule;
 
     set({ molecule: finalMolecule });
     useHistoryStore.getState().pushCommand(command);
@@ -58,14 +62,15 @@ export const useMoleculeStore = create<MoleculeState>((set, get) => ({
 
   createBond: (atomA, atomB, order = 1, type = 'SINGLE') => {
     const { molecule } = get();
-    // Check if bond already exists
     const graph = MolecularGraph.fromMolecule(molecule);
     if (graph.findBond(atomA, atomB)) {
       return null;
     }
 
     const { updatedMolecule, command, bondId } = MoleculeService.createBond(molecule, atomA, atomB, order, type);
-    set({ molecule: updatedMolecule });
+    // Always snap into stable VSEPR geometry after bonding
+    const optRes = GeometryOptimizationEngine.optimizeGeometry(updatedMolecule, 40, 0.12);
+    set({ molecule: optRes.optimizedMolecule });
     useHistoryStore.getState().pushCommand(command);
     return bondId;
   },

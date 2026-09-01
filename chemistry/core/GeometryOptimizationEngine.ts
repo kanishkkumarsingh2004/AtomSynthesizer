@@ -23,7 +23,7 @@ export class GeometryOptimizationEngine {
     const neighbors = graph.getNeighbors(centralAtomId);
     const numNeighbors = neighbors.length;
 
-    // AX4 (Tetrahedral): Methane CH4, C-sp3 -> 109.47 degrees
+    // AX4 (Tetrahedral): Methane CH4, Ethane C-sp3 -> 109.47 degrees
     if (numNeighbors >= 4) {
       return 109.47;
     }
@@ -61,7 +61,7 @@ export class GeometryOptimizationEngine {
 
       const r0 = (elA?.covalentRadius ?? 0.8) + (elB?.covalentRadius ?? 0.8);
       const r = distance(atomA.position, atomB.position);
-      const kb = 1400; // kJ/(mol * Å^2)
+      const kb = 1600; // kJ/(mol * Å^2)
 
       energy += 0.5 * kb * Math.pow(r - r0, 2);
     }
@@ -71,7 +71,7 @@ export class GeometryOptimizationEngine {
       const neighbors = graph.getNeighbors(center.id);
       if (neighbors.length >= 2) {
         const theta0 = this.getIdealVSEPRAngle(graph, center.id);
-        const kTheta = 1.2; // kJ/(mol * deg^2)
+        const kTheta = 1.5; // kJ/(mol * deg^2)
 
         for (let i = 0; i < neighbors.length; i++) {
           for (let j = i + 1; j < neighbors.length; j++) {
@@ -117,8 +117,8 @@ export class GeometryOptimizationEngine {
    */
   public static optimizeGeometry(
     molecule: Molecule,
-    maxSteps = 150,
-    stepSize = 0.12
+    maxSteps = 160,
+    stepSize = 0.14
   ): OptimizationResult {
     const graph = MolecularGraph.fromMolecule(molecule);
 
@@ -179,7 +179,7 @@ export class GeometryOptimizationEngine {
 
         if (r > 0.001) {
           const delta = r - r0;
-          const k = 1200;
+          const k = 1500;
           const forceMag = -k * delta;
 
           const dirAtoB = normalize(subtract(atomB.position, atomA.position));
@@ -191,18 +191,17 @@ export class GeometryOptimizationEngine {
         }
       }
 
-      // 2. VSEPR 3D Angle bending & Tetrahedral target forces
+      // 2. VSEPR 3D Angle bending & Tetrahedral / Trigonal target forces
       for (const center of atoms) {
         const neighbors = graph.getNeighbors(center.id);
 
-        // 4-COORDINATE TETRAHEDRAL (e.g. CH4 Methane, C-sp3)
+        // 4-COORDINATE TETRAHEDRAL (e.g. CH4 Methane, C-sp3 in Ethane)
         if (neighbors.length === 4) {
           const elC = ElementRepository.getByAtomicNumber(center.atomicNumber);
           const elN0 = ElementRepository.getByAtomicNumber(neighbors[0].atomicNumber);
           const r0 = (elC?.covalentRadius ?? 0.76) + (elN0?.covalentRadius ?? 0.31);
           const s = r0 / Math.sqrt(3);
 
-          // 3D Tetrahedral basis vectors relative to center
           const idealOffsets: Vector3D[] = [
             { x:  s, y:  s, z:  s },
             { x: -s, y: -s, z:  s },
@@ -214,42 +213,51 @@ export class GeometryOptimizationEngine {
             const n = neighbors[k];
             const targetPos = add(center.position, idealOffsets[k]);
             const dirToTarget = subtract(targetPos, n.position);
-            const tetForce = scale(dirToTarget, 550.0);
+            const tetForce = scale(dirToTarget, 650.0);
             forces.set(n.id, add(forces.get(n.id)!, tetForce));
           }
         }
 
-        if (neighbors.length >= 2) {
-          const theta0 = this.getIdealVSEPRAngle(graph, center.id);
-
-          for (let i = 0; i < neighbors.length; i++) {
-            for (let j = i + 1; j < neighbors.length; j++) {
+        // 3-COORDINATE TRIGONAL PLANAR (e.g. C-sp2 in Ethene CH2=CH2)
+        if (neighbors.length === 3) {
+          const theta0 = 120.0;
+          for (let i = 0; i < 3; i++) {
+            for (let j = i + 1; j < 3; j++) {
               const n1 = neighbors[i];
               const n2 = neighbors[j];
-
+              const currentDeg = angle(n1.position, center.position, n2.position);
+              const angleDeltaRad = ((currentDeg - theta0) * Math.PI) / 180;
               const vec1 = subtract(n1.position, center.position);
               const vec2 = subtract(n2.position, center.position);
-              const d1 = distance(n1.position, center.position);
-              const d2 = distance(n2.position, center.position);
+              const planeNormal = normalize(cross(vec1, vec2));
+              const forceDir1 = normalize(cross(planeNormal, vec1));
+              const forceDir2 = normalize(cross(vec2, planeNormal));
+              const f1 = scale(forceDir1, -250.0 * angleDeltaRad);
+              const f2 = scale(forceDir2, -250.0 * angleDeltaRad);
 
-              if (d1 > 0.01 && d2 > 0.01) {
-                const currentDeg = angle(n1.position, center.position, n2.position);
-                const angleDeltaRad = ((currentDeg - theta0) * Math.PI) / 180;
-                const kAngle = 180; // angular force magnitude
-
-                // Normal to the plane of the angle
-                const planeNormal = normalize(cross(vec1, vec2));
-                const forceDir1 = normalize(cross(planeNormal, vec1));
-                const forceDir2 = normalize(cross(vec2, planeNormal));
-
-                const f1 = scale(forceDir1, -kAngle * angleDeltaRad);
-                const f2 = scale(forceDir2, -kAngle * angleDeltaRad);
-
-                forces.set(n1.id, add(forces.get(n1.id)!, f1));
-                forces.set(n2.id, add(forces.get(n2.id)!, f2));
-              }
+              forces.set(n1.id, add(forces.get(n1.id)!, f1));
+              forces.set(n2.id, add(forces.get(n2.id)!, f2));
             }
           }
+        }
+
+        if (neighbors.length === 2) {
+          const theta0 = this.getIdealVSEPRAngle(graph, center.id);
+          const n1 = neighbors[0];
+          const n2 = neighbors[1];
+          const currentDeg = angle(n1.position, center.position, n2.position);
+          const angleDeltaRad = ((currentDeg - theta0) * Math.PI) / 180;
+          const vec1 = subtract(n1.position, center.position);
+          const vec2 = subtract(n2.position, center.position);
+          const planeNormal = normalize(cross(vec1, vec2));
+          const forceDir1 = normalize(cross(planeNormal, vec1));
+          const forceDir2 = normalize(cross(vec2, planeNormal));
+
+          const f1 = scale(forceDir1, -220.0 * angleDeltaRad);
+          const f2 = scale(forceDir2, -220.0 * angleDeltaRad);
+
+          forces.set(n1.id, add(forces.get(n1.id)!, f1));
+          forces.set(n2.id, add(forces.get(n2.id)!, f2));
         }
       }
 
@@ -267,7 +275,7 @@ export class GeometryOptimizationEngine {
           const r = Math.max(0.2, distance(a1.position, a2.position));
           if (r < sigma) {
             const dir1to2 = normalize(subtract(a2.position, a1.position));
-            const repForceMag = Math.min(600, 35.0 * (Math.pow(sigma / r, 12) / r));
+            const repForceMag = Math.min(650, 40.0 * (Math.pow(sigma / r, 12) / r));
             const f1 = scale(dir1to2, -repForceMag);
             const f2 = scale(dir1to2, repForceMag);
 
@@ -284,7 +292,7 @@ export class GeometryOptimizationEngine {
         const fMag = Math.sqrt(force.x * force.x + force.y * force.y + force.z * force.z);
 
         if (fMag > 0.001) {
-          const dispMag = Math.min(0.22, stepSize * fMag);
+          const dispMag = Math.min(0.25, stepSize * fMag);
           const normF = scale(force, 1 / fMag);
           const disp = scale(normF, dispMag);
 
@@ -301,7 +309,7 @@ export class GeometryOptimizationEngine {
       }
 
       const newEnergy = this.calculatePotentialEnergy(graph);
-      if (maxDisplacement < 0.003 || Math.abs(newEnergy - currentEnergy) < 0.02) {
+      if (maxDisplacement < 0.002 || Math.abs(newEnergy - currentEnergy) < 0.01) {
         converged = true;
         currentEnergy = newEnergy;
         break;
