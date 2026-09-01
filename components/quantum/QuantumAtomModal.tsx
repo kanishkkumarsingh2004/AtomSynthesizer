@@ -3,14 +3,14 @@
 import React, { useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { X, Layers, Atom as AtomIcon, Sparkles } from 'lucide-react';
-import { useUIStore } from '../../stores/uiStore';
+import { X, Layers, Atom as AtomIcon, Sparkles, Filter } from 'lucide-react';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useSelectionStore } from '../../stores/selectionStore';
 import { useMoleculeStore } from '../../stores/moleculeStore';
 import { ElementRepository } from '../../domain/elements/ElementRepository';
 import { QuantumShellEngine } from '../../chemistry/core/QuantumShellEngine';
 import { AtomicQuantumVisualizer } from '../molecular/AtomicQuantumVisualizer';
+import { SPDFOrbitalRenderer } from './SPDFOrbitalRenderer';
 
 export type QuantumViewMode = 'SHELL_KLMNOPQ' | 'SUBSHELL_SPDF';
 
@@ -22,6 +22,7 @@ export const QuantumAtomModal: React.FC = () => {
   const selectedAtomIds = useSelectionStore((state) => state.selectedAtomIds);
 
   const [viewMode, setViewMode] = useState<QuantumViewMode>('SHELL_KLMNOPQ');
+  const [subshellFilter, setSubshellFilter] = useState<'ALL' | 's' | 'p' | 'd' | 'f'>('ALL');
 
   if (!isOpen) return null;
 
@@ -36,7 +37,7 @@ export const QuantumAtomModal: React.FC = () => {
   const quantumData = QuantumShellEngine.getQuantumStructure(targetAtomicNumber);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="flex flex-col w-full max-w-2xl rounded-xl border border-slate-800 bg-slate-900 shadow-2xl overflow-hidden text-slate-100">
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/90 px-4 py-3">
@@ -67,8 +68,8 @@ export const QuantumAtomModal: React.FC = () => {
           </button>
         </div>
 
-        {/* View Mode Tabs (KLMNOPQ Shells vs spdf Subshells) */}
-        <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/50 px-4 py-2">
+        {/* View Mode Tabs & Subshell Filters */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 bg-slate-950/50 px-4 py-2">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setViewMode('SHELL_KLMNOPQ')}
@@ -79,7 +80,7 @@ export const QuantumAtomModal: React.FC = () => {
               }`}
             >
               <Layers className="h-3.5 w-3.5" />
-              <span>Shell View (K,L,M,N,O,P,Q)</span>
+              <span>Bohr Shell View (K,L,M,N,O,P,Q)</span>
             </button>
 
             <button
@@ -91,34 +92,67 @@ export const QuantumAtomModal: React.FC = () => {
               }`}
             >
               <AtomIcon className="h-3.5 w-3.5" />
-              <span>Subshell View (s, p, d, f)</span>
+              <span>3D Orbital View (s, p, d, f)</span>
             </button>
           </div>
 
-          <span className="text-[10px] font-mono text-purple-400 bg-purple-950/80 px-2 py-0.5 rounded border border-purple-800">
-            {quantumData.spdfString}
-          </span>
+          {viewMode === 'SUBSHELL_SPDF' ? (
+            <div className="flex items-center gap-1 font-mono text-[10px]">
+              <Filter className="h-3 w-3 text-purple-400 mr-0.5" />
+              {(['ALL', 's', 'p', 'd', 'f'] as const).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setSubshellFilter(filter)}
+                  className={`rounded px-1.5 py-0.5 uppercase border transition ${
+                    subshellFilter === filter
+                      ? 'bg-purple-950 border-purple-600 text-purple-300 font-bold'
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <span className="text-[10px] font-mono text-purple-400 bg-purple-950/80 px-2 py-0.5 rounded border border-purple-800">
+              {quantumData.spdfString}
+            </span>
+          )}
         </div>
 
-        {/* Dedicated 3D Canvas Viewport in Modal */}
+        {/* Dedicated 3D Canvas Viewport in Popup Modal */}
         <div className="relative h-72 w-full bg-slate-950">
           <Canvas camera={{ position: [0, 2, 6], fov: 45 }}>
-            <ambientLight intensity={0.8} />
-            <directionalLight position={[10, 10, 10]} intensity={1.2} />
-            <directionalLight position={[-10, -10, -5]} intensity={0.4} />
+            <ambientLight intensity={0.9} />
+            <directionalLight position={[10, 10, 10]} intensity={1.3} castShadow />
+            <directionalLight position={[-10, -10, -5]} intensity={0.5} />
 
-            <AtomicQuantumVisualizer
-              atomicNumber={targetAtomicNumber}
-              position={{ x: 0, y: 0, z: 0 }}
-              scale={1.2}
-            />
+            {viewMode === 'SHELL_KLMNOPQ' ? (
+              <AtomicQuantumVisualizer
+                atomicNumber={targetAtomicNumber}
+                position={{ x: 0, y: 0, z: 0 }}
+                scale={1.2}
+              />
+            ) : (
+              <SPDFOrbitalRenderer
+                quantumData={quantumData}
+                selectedSubshellFilter={subshellFilter}
+              />
+            )}
 
             <OrbitControls makeDefault enableDamping dampingFactor={0.05} />
           </Canvas>
 
-          {/* Interactive Hint */}
-          <div className="absolute bottom-2 left-2 text-[10px] font-mono text-slate-500 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800">
-            Rotate & zoom isolated atom independently
+          {/* Interactive Hint Legend */}
+          <div className="absolute bottom-2 left-2 flex items-center gap-2 text-[10px] font-mono bg-slate-950/80 px-2.5 py-1 rounded border border-slate-800">
+            {viewMode === 'SUBSHELL_SPDF' ? (
+              <>
+                <span className="flex items-center gap-1 text-pink-400">● + Phase Lobe</span>
+                <span className="flex items-center gap-1 text-cyan-400">● - Phase Lobe</span>
+              </>
+            ) : (
+              <span className="text-slate-400">Rotate & zoom 3D atom independently</span>
+            )}
           </div>
         </div>
 
