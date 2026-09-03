@@ -163,7 +163,7 @@ export const MoleculeMarketplaceModal: React.FC = () => {
                         <h3 className="font-extrabold text-sm text-slate-100 group-hover:text-indigo-300 transition">
                           {preset.name}
                         </h3>
-                        <p className="text-[10px] font-mono text-slate-400 truncate max-w-[170px]">
+                        <p className="text-[10px] font-mono text-slate-400 break-words">
                           {preset.iupacName}
                         </p>
                       </div>

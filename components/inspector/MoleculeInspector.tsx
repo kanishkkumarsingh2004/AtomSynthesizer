@@ -51,9 +51,9 @@ export const MoleculeInspector: React.FC = () => {
           <SubscriptFormula formula={analysis.formula} className="text-sm font-extrabold text-blue-400 font-mono" />
         </div>
 
-        <div className="flex items-center justify-between border-t border-slate-800/80 pt-1.5">
+        <div className="flex flex-col gap-0.5 border-t border-slate-800/80 pt-1.5">
           <span className="text-[10px] font-semibold text-slate-400">IUPAC Name</span>
-          <span className="text-xs font-bold text-emerald-400 font-mono truncate max-w-[170px]">
+          <span className="text-xs font-bold text-emerald-400 font-mono break-all leading-relaxed">
             {analysis.iupacName}
           </span>
         </div>
