@@ -30,7 +30,18 @@ const COMMON_NAMES: Record<string, string> = {
   'C3H8': 'Propane',
   'C3H6': 'Propene (Propylene)',
   'C4H10': 'Butane',
+  'C5H12': '2,2-Dimethylpropane (Neopentane)',
   'C6H6': 'Benzene',
+  'C8H10N4O2': '1,3,7-Trimethylpurine-2,6-dione (Caffeine)',
+  'C7H5N3O6': '2,4,6-Trinitrotoluene (TNT)',
+  'C8H11N1O2': '4-(2-Aminoethyl)benzene-1,2-diol (Dopamine)',
+  'C9H13N1O3': '4-[1-Hydroxy-2-(methylamino)ethyl]benzene-1,2-diol (Adrenaline)',
+  'C5H5N5': '9H-Purin-6-amine (Adenine)',
+  'C5H6N2O2': '5-Methylpyrimidine-2,4-dione (Thymine)',
+  'C5H5N5O1': '2-Amino-1H-purin-6-one (Guanine)',
+  'C4H5N3O1': '4-Aminopyrimidin-2-one (Cytosine)',
+  'C4H4N2O2': 'Pyrimidine-2,4-dione (Uracil)',
+  'C6H12O6': 'D-Glucose',
   'C1H4O1': 'Methanol',
   'C2H6O1': 'Ethanol',
   'C3H8O1': 'Propan-1-ol',
@@ -42,7 +53,6 @@ const COMMON_NAMES: Record<string, string> = {
   'C3H6O2': 'Propionic acid (Propanoic acid)',
   'C6H8O7': 'Citric acid',
   'C2H6O2': 'Ethylene glycol',
-  'C6H12O6': 'Glucose',
   'C12H22O11': 'Sucrose',
   'H2S1': 'Hydrogen sulfide',
   'H1Cl1': 'Hydrogen chloride',
@@ -97,24 +107,34 @@ export class NomenclatureEngine {
   public static calculateStereodescriptors(graph: MolecularGraph): string[] {
     const descriptors: string[] = [];
     const carbons = graph.getAllAtoms().filter((a) => a.atomicNumber === 6);
+    const morgan = this.calculateMorganInvariants(graph);
 
-    // 1. Chiral Centers (R/S) via 3D Scalar Triple Product: Sign = v12 · (v23 × v34)
+    // 1. Chiral Centers (R/S) via 3D Scalar Triple Product: Sign = v14 · (v24 × v34)
     for (const c of carbons) {
       const neighbors = graph.getNeighbors(c.id);
       if (neighbors.length !== 4) continue;
 
-      // Assign CIP priority 1..4 based on atomic weight and Morgan invariant
-      const morgan = this.calculateMorganInvariants(graph);
-      const sortedNeighbors = [...neighbors].sort((a, b) => {
-        if (b.atomicNumber !== a.atomicNumber) return b.atomicNumber - a.atomicNumber;
-        return (morgan.get(b.id) || 0) - (morgan.get(a.id) || 0);
-      });
+      // Assign CIP priority score for each neighbor: AtomicNumber * 1000 + MorganInvariant
+      const neighborScores = neighbors.map((n) => ({
+        atom: n,
+        score: n.atomicNumber * 1000 + (morgan.get(n.id) || 0)
+      }));
 
-      // Verify all 4 neighbors have unique CIP priorities
-      const n1 = sortedNeighbors[0];
-      const n2 = sortedNeighbors[1];
-      const n3 = sortedNeighbors[2];
-      const n4 = sortedNeighbors[3];
+      // Sort descending by CIP score
+      neighborScores.sort((a, b) => b.score - a.score);
+
+      // MANDATORY CHECK: All 4 neighbor scores MUST be strictly unique to be a true chiral center!
+      const isUnique =
+        neighborScores[0].score !== neighborScores[1].score &&
+        neighborScores[1].score !== neighborScores[2].score &&
+        neighborScores[2].score !== neighborScores[3].score;
+
+      if (!isUnique) continue; // Skip symmetric groups (-CH3, -CH2-, etc.)
+
+      const n1 = neighborScores[0].atom;
+      const n2 = neighborScores[1].atom;
+      const n3 = neighborScores[2].atom;
+      const n4 = neighborScores[3].atom;
 
       const v1 = { x: n1.position.x - c.position.x, y: n1.position.y - c.position.y, z: n1.position.z - c.position.z };
       const v2 = { x: n2.position.x - c.position.x, y: n2.position.y - c.position.y, z: n2.position.z - c.position.z };
@@ -134,17 +154,22 @@ export class NomenclatureEngine {
       // Scalar triple product dot = v14 · (v24 × v34)
       const tripleProduct = v14.x * crossX + v14.y * crossY + v14.z * crossZ;
 
-      if (Math.abs(tripleProduct) > 0.01) {
+      if (Math.abs(tripleProduct) > 0.05) {
         descriptors.push(tripleProduct > 0 ? '(R)' : '(S)');
       }
     }
 
-    // 2. Double Bond E/Z Geometry (Zusammen vs Entgegen)
+    // 2. Double Bond E/Z Geometry (Zusammen vs Entgegen) — Acyclic non-ring bonds ONLY
     for (const bond of graph.getAllBonds()) {
-      if (bond.order !== 2) continue;
+      if (bond.order !== 2 || bond.aromatic) continue;
       const aA = graph.getAtom(bond.atomA);
       const aB = graph.getAtom(bond.atomB);
       if (!aA || !aB || aA.atomicNumber !== 6 || aB.atomicNumber !== 6) continue;
+
+      // Check if bond is in a small ring (5 or 6 membered); if so, skip E/Z
+      const components = graph.getConnectedComponents();
+      const isSmallRingBond = components.some((comp) => comp.length <= 6 && comp.includes(aA.id) && comp.includes(aB.id));
+      if (isSmallRingBond) continue;
 
       const nA = graph.getNeighbors(aA.id).filter((n) => n.id !== aB.id);
       const nB = graph.getNeighbors(aB.id).filter((n) => n.id !== aA.id);
