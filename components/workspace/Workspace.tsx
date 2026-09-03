@@ -7,6 +7,7 @@ import { PeriodicTable } from '../periodic-table/PeriodicTable';
 import { Inspector } from '../inspector/Inspector';
 import { MolecularCanvas } from '../molecular/MolecularCanvas';
 import { QuantumAtomModal } from '../quantum/QuantumAtomModal';
+import { MoleculeMarketplaceModal } from '../marketplace/MoleculeMarketplaceModal';
 import { SHORTCUTS } from '../../lib/shortcuts';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useHistoryStore } from '../../stores/historyStore';
@@ -83,6 +84,7 @@ export const Workspace: React.FC = () => {
 
       <WorkspaceStatus />
       <QuantumAtomModal />
+      <MoleculeMarketplaceModal />
     </div>
   );
 };

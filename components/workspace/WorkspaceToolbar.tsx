@@ -19,7 +19,8 @@ import {
   Zap,
   Sparkles,
   Activity,
-  Target
+  Target,
+  ShoppingBag
 } from 'lucide-react';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useSelectionStore } from '../../stores/selectionStore';
@@ -130,6 +131,16 @@ export const WorkspaceToolbar: React.FC = () => {
         >
           <Layers className="h-3 w-3 text-blue-400" />
           <span className="hidden md:inline">Periodic Table</span>
+        </button>
+
+        {/* Preset Molecule Marketplace */}
+        <button
+          onClick={() => useUIStore.getState().toggleMarketplace()}
+          className="flex items-center gap-1.5 rounded bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 px-2.5 py-1 text-[11px] font-bold text-white shadow-md shadow-purple-950/50 border border-purple-400/30 transition active:scale-95"
+          title="Open Preset Molecule Marketplace & 3D Library"
+        >
+          <ShoppingBag className="h-3.5 w-3.5 text-amber-300 animate-bounce" />
+          <span className="tracking-tight">Marketplace</span>
         </button>
       </div>
 

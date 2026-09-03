@@ -4,7 +4,7 @@ import React from 'react';
 import { useMoleculeStore } from '../../stores/moleculeStore';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { ChemistryEngine } from '../../chemistry/core/ChemistryEngine';
-import { Activity, Flame, ShieldAlert, CheckCircle2, AlertTriangle, Thermometer } from 'lucide-react';
+import { Activity, ShieldAlert, CheckCircle2, AlertTriangle, Thermometer, Compass, Zap, Waves } from 'lucide-react';
 
 export const MoleculeInspector: React.FC = () => {
   const molecule = useMoleculeStore((state) => state.molecule);
@@ -14,12 +14,29 @@ export const MoleculeInspector: React.FC = () => {
   const analysis = ChemistryEngine.analyzeMolecule(molecule, temperatureK);
   const validation = ChemistryEngine.validateMolecule(molecule);
 
+  // Temperature in Celsius (°C)
+  const tempCelsius = Math.round((temperatureK - 273.15) * 10) / 10;
+
+  const handleCelsiusChange = (newCelsius: number) => {
+    const newK = Math.round((newCelsius + 273.15) * 100) / 100;
+    setTemperatureK(newK);
+  };
+
+  const vib = analysis.vibrationalThermal;
+
   return (
     <div className="flex flex-col gap-3 text-xs text-slate-300">
       {/* Molecule Header */}
-      <div className="rounded-lg border border-slate-800 bg-slate-900/90 p-2.5 shadow">
-        <h3 className="text-sm font-bold text-white truncate">{molecule.name || 'Unnamed Molecule'}</h3>
-        <p className="text-[10px] text-slate-400 font-mono">ID: {molecule.id}</p>
+      <div className="rounded-lg border border-slate-800 bg-slate-900/90 p-2.5 shadow flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-white truncate">{molecule.name || 'Unnamed Molecule'}</h3>
+          <p className="text-[10px] text-slate-400 font-mono">ID: {molecule.id}</p>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="rounded bg-indigo-950 px-2 py-0.5 text-[10px] font-extrabold text-indigo-300 border border-indigo-800/80 font-mono">
+            {analysis.quantum.pointGroupSymmetry}
+          </span>
+        </div>
       </div>
 
       {/* Formula & Properties */}
@@ -58,43 +75,87 @@ export const MoleculeInspector: React.FC = () => {
         </div>
       </div>
 
-      {/* Thermodynamics & Reaction Kinetics */}
+      {/* Temperature Controls & Vibrational Dynamics */}
       <div className="rounded-lg border border-slate-800 bg-slate-900/90 p-2.5 shadow space-y-2">
         <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
           <div className="flex items-center gap-1.5 text-amber-400 font-extrabold uppercase text-[11px]">
             <Thermometer className="h-3.5 w-3.5" />
-            <span>Thermodynamics & Kinetics</span>
+            <span>Thermodynamics & Temperature</span>
           </div>
-          <span className="text-[9px] font-mono text-slate-400">{temperatureK} K</span>
+          <span className="text-[10px] font-mono font-bold text-amber-300">
+            {tempCelsius} °C <span className="text-slate-400 text-[9px]">({temperatureK.toFixed(1)} K)</span>
+          </span>
         </div>
 
-        <div className="flex items-center justify-between gap-2 text-[10px] font-mono">
-          <span className="text-slate-400">Temperature (K):</span>
+        {/* Temperature Meter in °C (Degree Celsius) */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
+            <span>Temperature Meter (°C):</span>
+            <span className="font-bold text-white">{tempCelsius} °C</span>
+          </div>
           <input
             type="range"
-            min="100"
-            max="1200"
-            step="10"
-            value={temperatureK}
-            onChange={(e) => setTemperatureK(parseFloat(e.target.value))}
-            className="w-24 accent-amber-500"
+            min="-200"
+            max="1000"
+            step="5"
+            value={tempCelsius}
+            onChange={(e) => handleCelsiusChange(parseFloat(e.target.value))}
+            className="w-full accent-amber-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
           />
+          <div className="flex justify-between text-[8px] font-mono text-slate-500">
+            <span>-200 °C (73 K)</span>
+            <span>25 °C (298 K)</span>
+            <span>500 °C (773 K)</span>
+            <span>1000 °C (1273 K)</span>
+          </div>
         </div>
 
+        {/* Thermal Vibrations & Normal Modes */}
+        <div className="rounded bg-slate-950/80 p-2 border border-slate-800/80 space-y-1.5">
+          <div className="flex items-center justify-between text-[10px] border-b border-slate-900 pb-1">
+            <span className="flex items-center gap-1 text-cyan-300 font-bold">
+              <Waves className="h-3.5 w-3.5" /> Vibrational Normal Modes
+            </span>
+            <span className="font-mono text-cyan-400 font-extrabold">{vib.vibrationalModesCount} Mode(s)</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono text-slate-300 pt-0.5">
+            <div>
+              <span className="text-slate-500">RMS Amplitude:</span>{' '}
+              <span className="text-emerald-300 font-bold">{vib.thermalAmplitudeAngstrom} Å</span>
+            </div>
+            <div>
+              <span className="text-slate-500">Stability State:</span>{' '}
+              <span className={
+                vib.thermalStabilityBadge === 'THERMALLY STABLE' ? 'text-emerald-400 font-extrabold' :
+                vib.thermalStabilityBadge === 'THERMALLY EXCITED' ? 'text-amber-400 font-extrabold' :
+                'text-rose-400 font-extrabold'
+              }>
+                {vib.thermalStabilityBadge}
+              </span>
+            </div>
+          </div>
+
+          <p className="text-[9.5px] text-slate-300 pt-1 leading-relaxed border-t border-slate-900/80 font-sans">
+            {vib.description}
+          </p>
+        </div>
+
+        {/* Enthalpy, Entropy & Gibbs Values */}
         <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono pt-1 border-t border-slate-800/80">
           <div>
             <span className="text-slate-500">Enthalpy (ΔH°):</span>{' '}
-            <span className={analysis.thermodynamics.isExothermic ? 'text-emerald-400' : 'text-amber-400'}>
+            <span className={analysis.thermodynamics.isExothermic ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
               {analysis.thermodynamics.enthalpyKjPerMol} kJ/mol
             </span>
           </div>
           <div>
             <span className="text-slate-500">Entropy (S°):</span>{' '}
-            <span className="text-slate-200">{analysis.thermodynamics.entropyJPerMolK} J/mol·K</span>
+            <span className="text-slate-200 font-bold">{analysis.thermodynamics.entropyJPerMolK} J/mol·K</span>
           </div>
           <div>
             <span className="text-slate-500">Gibbs (ΔG°):</span>{' '}
-            <span className={analysis.thermodynamics.isSpontaneous ? 'text-emerald-400' : 'text-rose-400'}>
+            <span className={analysis.thermodynamics.isSpontaneous ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
               {analysis.thermodynamics.gibbsFreeEnergyKjPerMol} kJ/mol
             </span>
           </div>
@@ -107,28 +168,44 @@ export const MoleculeInspector: React.FC = () => {
             <span className="text-slate-200">{analysis.kinetics.activationEnergyKjPerMol} kJ/mol</span>
           </div>
           <div>
-            <span className="text-slate-500">Rate Constant (k):</span>{' '}
+            <span className="text-slate-500">Rate Const (k):</span>{' '}
             <span className="text-slate-200">{analysis.kinetics.rateConstantK} s⁻¹</span>
           </div>
         </div>
 
-        <div className="rounded bg-slate-950/80 p-1.5 text-[10px] font-sans text-slate-300 border border-slate-800/80">
+        <div className="rounded bg-slate-950/80 p-1.5 text-[10px] font-sans text-slate-300 border border-slate-800/80 space-y-1">
+          <div className="flex items-center justify-between text-[9px] text-slate-400 border-b border-slate-900 pb-0.5 font-mono">
+            <span>Data Origin:</span>
+            <span className="text-amber-300 font-bold">{analysis.thermodynamics.dataSource}</span>
+          </div>
           <p className="font-semibold text-amber-300">{analysis.kinetics.description}</p>
-          <p className="text-slate-400 text-[9px] mt-0.5">{analysis.thermodynamics.summary}</p>
+          <p className="text-slate-400 text-[9px]">{analysis.thermodynamics.summary}</p>
         </div>
       </div>
 
-      {/* Quantum Mechanics (HMO) */}
+      {/* Quantum Mechanics & Molecular Physics */}
       <div className="rounded-lg border border-slate-800 bg-slate-900/90 p-2.5 shadow space-y-2">
-        <div className="flex items-center gap-1.5 text-purple-400 font-extrabold uppercase text-[11px] border-b border-slate-800 pb-1.5">
-          <Activity className="h-3.5 w-3.5" />
-          <span>Quantum Mechanics (HMO)</span>
+        <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+          <div className="flex items-center gap-1.5 text-purple-400 font-extrabold uppercase text-[11px]">
+            <Activity className="h-3.5 w-3.5" />
+            <span>Quantum Physics & Dipole</span>
+          </div>
+          <div className="flex items-center gap-1 text-[9px] font-mono text-purple-300">
+            <Compass className="h-3 w-3" />
+            <span>{analysis.quantum.pointGroupSymmetry}</span>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
           <div>
             <span className="text-slate-500">Dipole (|μ|):</span>{' '}
-            <span className="text-slate-200">{analysis.quantum.dipoleMagnitude} D</span>
+            <span className={analysis.quantum.dipoleMagnitude === 0 ? 'text-emerald-400 font-extrabold' : 'text-amber-300 font-extrabold'}>
+              {analysis.quantum.dipoleMagnitude} D
+            </span>
+          </div>
+          <div>
+            <span className="text-slate-500">Polarizability (α):</span>{' '}
+            <span className="text-cyan-300">{analysis.quantum.polarizabilityAng3} Å³</span>
           </div>
           <div>
             <span className="text-slate-500">HOMO Energy:</span>{' '}
@@ -152,7 +229,44 @@ export const MoleculeInspector: React.FC = () => {
               {analysis.quantum.homoLumoGapEV !== null ? `${analysis.quantum.homoLumoGapEV} eV` : 'N/A'}
             </span>
           </div>
+          <div>
+            <span className="text-slate-500">Symmetry:</span>{' '}
+            <span className="text-indigo-300 font-bold">{analysis.quantum.pointGroupSymmetry}</span>
+          </div>
         </div>
+
+        {/* Dipole Vector Components */}
+        <div className="rounded bg-slate-950/80 p-1.5 text-[9px] font-mono border border-slate-800/80 space-y-1">
+          <div className="flex items-center justify-between text-slate-400 border-b border-slate-900 pb-0.5">
+            <span className="flex items-center gap-1 text-purple-300 font-bold">
+              <Zap className="h-3 w-3" /> Dipole Vector (px, py, pz)
+            </span>
+            <span>Debye (D)</span>
+          </div>
+          <div className="grid grid-cols-3 gap-1 text-center text-slate-300">
+            <div><span className="text-slate-500">X:</span> {analysis.quantum.dipoleVector.x}</div>
+            <div><span className="text-slate-500">Y:</span> {analysis.quantum.dipoleVector.y}</div>
+            <div><span className="text-slate-500">Z:</span> {analysis.quantum.dipoleVector.z}</div>
+          </div>
+        </div>
+
+        {/* Partial Charge Distribution Extremes */}
+        {analysis.quantum.maxPositiveCharge && analysis.quantum.maxNegativeCharge && (
+          <div className="grid grid-cols-2 gap-1 text-[9px] font-mono border-t border-slate-800/80 pt-1.5">
+            <div>
+              <span className="text-slate-500">Max + Charge:</span>{' '}
+              <span className="text-rose-400 font-bold">
+                +{analysis.quantum.maxPositiveCharge.charge}e ({analysis.quantum.maxPositiveCharge.symbol})
+              </span>
+            </div>
+            <div>
+              <span className="text-slate-500">Max - Charge:</span>{' '}
+              <span className="text-blue-400 font-bold">
+                {analysis.quantum.maxNegativeCharge.charge}e ({analysis.quantum.maxNegativeCharge.symbol})
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Structure Validation */}

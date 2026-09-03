@@ -6,6 +6,7 @@ import { NomenclatureEngine } from './NomenclatureEngine';
 import { QuantumEngine, QuantumAnalysisResult } from './QuantumEngine';
 import { ThermodynamicsEngine, ThermodynamicsResult } from './ThermodynamicsEngine';
 import { ReactionLogicEngine, ReactionAnalysis } from './ReactionLogicEngine';
+import { ReactionSimulationEngine, ThermalVibrationAnalysis } from './ReactionSimulationEngine';
 import { ElementRepository } from '../../domain/elements/ElementRepository';
 import { ValidationResult, ValidationIssue } from '../../domain/validation/ValidationResult';
 
@@ -21,6 +22,7 @@ export interface MolecularAnalysis {
   quantum: QuantumAnalysisResult;
   thermodynamics: ThermodynamicsResult;
   kinetics: ReactionAnalysis;
+  vibrationalThermal: ThermalVibrationAnalysis;
 }
 
 export class ChemistryEngine {
@@ -77,9 +79,10 @@ export class ChemistryEngine {
       }
     }
 
-    const quantum = QuantumEngine.analyzeQuantumMechanics(graph);
+    const quantum = QuantumEngine.analyzeQuantumMechanics(graph, temperatureK);
     const thermodynamics = ThermodynamicsEngine.analyzeThermodynamics(graph, temperatureK);
     const kinetics = ReactionLogicEngine.analyzeReactionKinetics(graph, temperatureK);
+    const vibrationalThermal = ReactionSimulationEngine.analyzeVibrationalThermalStability(graph, temperatureK);
 
     return {
       formula: FormulaEngine.generateFormula(graph),
@@ -92,7 +95,8 @@ export class ChemistryEngine {
       connectedComponentsCount: graph.getConnectedComponents().length,
       quantum,
       thermodynamics,
-      kinetics
+      kinetics,
+      vibrationalThermal
     };
   }
 }

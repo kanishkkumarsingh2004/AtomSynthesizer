@@ -44,6 +44,26 @@ function runPhysicsAndVSEPRTests() {
 
   console.log('  ✅ Coplanar CH4 3D Tetrahedral Pop-Out passed.');
 
+  // Test 2: CO2 Linear 180 degree geometry optimization
+  console.log('\n2. Testing CO2 Linear (180 deg) Geometry Optimization...');
+  const graphCO2 = new MolecularGraph('co2', 'Carbon Dioxide');
+  graphCO2.addAtom({ id: 'c1', atomicNumber: 6, position: { x: 0, y: 0, z: 0 }, formalCharge: 0, moleculeId: 'co2' });
+  graphCO2.addAtom({ id: 'o1', atomicNumber: 8, position: { x: 1.16, y: 0, z: 0 }, formalCharge: 0, moleculeId: 'co2' });
+  graphCO2.addAtom({ id: 'o2', atomicNumber: 8, position: { x: 0, y: 1.16, z: 0 }, formalCharge: 0, moleculeId: 'co2' }); // placed at 90 deg
+
+  graphCO2.addBond({ id: 'b1', atomA: 'c1', atomB: 'o1', order: 2, type: 'DOUBLE' });
+  graphCO2.addBond({ id: 'b2', atomA: 'c1', atomB: 'o2', order: 2, type: 'DOUBLE' });
+
+  const optResCO2 = GeometryOptimizationEngine.optimizeGeometry(graphCO2.toMolecule(), 200);
+  const co2Atoms = optResCO2.optimizedMolecule.atoms;
+  const co2_o1 = co2Atoms.find((a) => a.id === 'o1')!;
+  const co2_c1 = co2Atoms.find((a) => a.id === 'c1')!;
+  const co2_o2 = co2Atoms.find((a) => a.id === 'o2')!;
+  const co2Angle = angle(co2_o1.position, co2_c1.position, co2_o2.position);
+  console.log(`  Measured O-C-O bond angle: ${co2Angle.toFixed(2)} degrees`);
+  assert(Math.abs(co2Angle - 180.0) < 1.0, `CO2 O-C-O bond angle relaxed to 180 deg, got ${co2Angle.toFixed(2)} deg`);
+  console.log('  ✅ CO2 Linear 180 deg VSEPR Geometry Optimization passed.');
+
   console.log('\n🎉 ALL 3D TETRAHEDRAL POP-OUT TESTS PASSED SUCCESSFULLY!');
 }
 

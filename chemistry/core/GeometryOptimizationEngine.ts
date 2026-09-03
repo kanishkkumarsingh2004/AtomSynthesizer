@@ -1,7 +1,7 @@
 import { Molecule } from '../../domain/molecular/Molecule';
 import { MolecularGraph } from '../../domain/molecular/MolecularGraph';
 import { ElementRepository } from '../../domain/elements/ElementRepository';
-import { distance, subtract, normalize, add, scale, angle, dot, cross } from '../../lib/math';
+import { distance, subtract, normalize, add, scale, angle, dot, cross, magnitude } from '../../lib/math';
 import { Vector3D } from '../../domain/molecular/MolecularTypes';
 
 export interface OptimizationResult {
@@ -27,17 +27,19 @@ export class GeometryOptimizationEngine {
     if (numNeighbors >= 4) {
       return 109.47;
     }
-    // AX3 (Trigonal Planar / Pyramidal): Ethene / Ammonia -> 120.0 or 107.0 degrees
+    // AX3 (Trigonal Planar / Pyramidal): Ethene (120.0), Ammonia (107.0)
     if (numNeighbors === 3) {
-      if (atom.atomicNumber === 7) return 107.0; // Ammonia-like
+      if (atom.atomicNumber === 7 || atom.atomicNumber === 15) return 107.0; // Ammonia / Phosphine
       return 120.0; // Trigonal planar
     }
     // AX2 (Bent or Linear): Water H2O -> 104.5 degrees, CO2 -> 180 degrees
     if (numNeighbors === 2) {
-      if (atom.atomicNumber === 8 || atom.atomicNumber === 16) return 104.5; // Water / H2S bent
+      if (atom.atomicNumber === 8 || atom.atomicNumber === 16) return 104.5; // Water / H2S bent (AX2E2)
+      if (atom.atomicNumber === 7) return 115.0; // NO2- bent (AX2E1)
+      if (atom.atomicNumber === 6) return 180.0; // Carbon in CO2, HCN, Acetylene is sp hybridized -> linear (180 deg)
       const bonds = graph.getBondsForAtom(centralAtomId);
       const isLinear = bonds.some((b) => b.order >= 2);
-      return isLinear ? 180.0 : 109.47;
+      return isLinear ? 180.0 : 180.0;
     }
 
     return 109.47;
@@ -59,7 +61,10 @@ export class GeometryOptimizationEngine {
       const elA = ElementRepository.getByAtomicNumber(atomA.atomicNumber);
       const elB = ElementRepository.getByAtomicNumber(atomB.atomicNumber);
 
-      const r0 = (elA?.covalentRadius ?? 0.8) + (elB?.covalentRadius ?? 0.8);
+      let r0 = (elA?.covalentRadius ?? 0.8) + (elB?.covalentRadius ?? 0.8);
+      if (bond.order === 2) r0 *= 0.88;
+      if (bond.order === 3) r0 *= 0.78;
+
       const r = distance(atomA.position, atomB.position);
       const kb = 1600; // kJ/(mol * Å^2)
 
@@ -70,24 +75,29 @@ export class GeometryOptimizationEngine {
     for (const center of atoms) {
       const neighbors = graph.getNeighbors(center.id);
       if (neighbors.length >= 2) {
-        const theta0 = this.getIdealVSEPRAngle(graph, center.id);
-        const kTheta = 1.5; // kJ/(mol * deg^2)
+        const theta0Deg = this.getIdealVSEPRAngle(graph, center.id);
+        const theta0Rad = (theta0Deg * Math.PI) / 180;
+        const kTheta = 350.0; // kJ/(mol * rad^2)
 
         for (let i = 0; i < neighbors.length; i++) {
           for (let j = i + 1; j < neighbors.length; j++) {
-            const currentAngle = angle(neighbors[i].position, center.position, neighbors[j].position);
-            energy += 0.5 * kTheta * Math.pow(currentAngle - theta0, 2);
+            const currentDeg = angle(neighbors[i].position, center.position, neighbors[j].position);
+            const currentRad = (currentDeg * Math.PI) / 180;
+            energy += 0.5 * kTheta * Math.pow(currentRad - theta0Rad, 2);
           }
         }
       }
     }
 
-    // 3. Non-bonded repulsion energy
+    // 3. Non-bonded repulsion energy (excl. 1,2 and 1,3 pairs)
     for (let i = 0; i < atoms.length; i++) {
       for (let j = i + 1; j < atoms.length; j++) {
         const a1 = atoms[i];
         const a2 = atoms[j];
         if (graph.findBond(a1.id, a2.id)) continue;
+        const n1 = graph.getNeighbors(a1.id);
+        const n2 = graph.getNeighbors(a2.id);
+        if (n1.some((neighbor) => n2.some((n) => n.id === neighbor.id))) continue;
 
         const el1 = ElementRepository.getByAtomicNumber(a1.atomicNumber);
         const el2 = ElementRepository.getByAtomicNumber(a2.atomicNumber);
@@ -174,7 +184,10 @@ export class GeometryOptimizationEngine {
 
         const elA = ElementRepository.getByAtomicNumber(atomA.atomicNumber);
         const elB = ElementRepository.getByAtomicNumber(atomB.atomicNumber);
-        const r0 = (elA?.covalentRadius ?? 0.8) + (elB?.covalentRadius ?? 0.8);
+        let r0 = (elA?.covalentRadius ?? 0.8) + (elB?.covalentRadius ?? 0.8);
+        if (bond.order === 2) r0 *= 0.88;
+        if (bond.order === 3) r0 *= 0.78;
+
         const r = distance(atomA.position, atomB.position);
 
         if (r > 0.001) {
@@ -191,115 +204,111 @@ export class GeometryOptimizationEngine {
         }
       }
 
-      // 2. VSEPR 3D Angle bending & Tetrahedral / Trigonal target forces
+      // 2. Analytical VSEPR 3D Harmonic Angle Bending forces (F = -dU/dr)
       for (const center of atoms) {
         const neighbors = graph.getNeighbors(center.id);
+        if (neighbors.length < 2) continue;
 
-        // 4-COORDINATE TETRAHEDRAL (e.g. CH4 Methane, C-sp3 in Ethane)
-        if (neighbors.length === 4) {
-          const elC = ElementRepository.getByAtomicNumber(center.atomicNumber);
-          const elN0 = ElementRepository.getByAtomicNumber(neighbors[0].atomicNumber);
-          const r0 = (elC?.covalentRadius ?? 0.76) + (elN0?.covalentRadius ?? 0.31);
-          const s = r0 / Math.sqrt(3);
+        const theta0Deg = this.getIdealVSEPRAngle(graph, center.id);
+        const theta0Rad = (theta0Deg * Math.PI) / 180;
+        const kTheta = 450.0; // Angle stiffness constant
 
-          const idealOffsets: Vector3D[] = [
-            { x:  s, y:  s, z:  s },
-            { x: -s, y: -s, z:  s },
-            { x: -s, y:  s, z: -s },
-            { x:  s, y: -s, z: -s }
-          ];
+        for (let i = 0; i < neighbors.length; i++) {
+          for (let j = i + 1; j < neighbors.length; j++) {
+            const n1 = neighbors[i];
+            const n2 = neighbors[j];
 
-          for (let k = 0; k < 4; k++) {
-            const n = neighbors[k];
-            const targetPos = add(center.position, idealOffsets[k]);
-            const dirToTarget = subtract(targetPos, n.position);
-            const tetForce = scale(dirToTarget, 650.0);
-            forces.set(n.id, add(forces.get(n.id)!, tetForce));
-          }
-        }
+            const v1 = subtract(n1.position, center.position);
+            const v2 = subtract(n2.position, center.position);
+            const r1 = Math.max(0.1, magnitude(v1));
+            const r2 = Math.max(0.1, magnitude(v2));
 
-        // 3-COORDINATE TRIGONAL PLANAR (e.g. C-sp2 in Ethene CH2=CH2)
-        if (neighbors.length === 3) {
-          const theta0 = 120.0;
-          for (let i = 0; i < 3; i++) {
-            for (let j = i + 1; j < 3; j++) {
-              const n1 = neighbors[i];
-              const n2 = neighbors[j];
-              const currentDeg = angle(n1.position, center.position, n2.position);
-              const angleDeltaRad = ((currentDeg - theta0) * Math.PI) / 180;
-              const vec1 = subtract(n1.position, center.position);
-              const vec2 = subtract(n2.position, center.position);
-              const planeNormal = normalize(cross(vec1, vec2));
-              const forceDir1 = normalize(cross(planeNormal, vec1));
-              const forceDir2 = normalize(cross(vec2, planeNormal));
-              const f1 = scale(forceDir1, -250.0 * angleDeltaRad);
-              const f2 = scale(forceDir2, -250.0 * angleDeltaRad);
+            const e1 = scale(v1, 1 / r1);
+            const e2 = scale(v2, 1 / r2);
 
-              forces.set(n1.id, add(forces.get(n1.id)!, f1));
-              forces.set(n2.id, add(forces.get(n2.id)!, f2));
+            const cosTheta = Math.max(-1.0, Math.min(1.0, dot(e1, e2)));
+            const currentRad = Math.acos(cosTheta);
+            const deltaTheta = currentRad - theta0Rad;
+
+            let perp1: Vector3D;
+            let perp2: Vector3D;
+
+            const sinTheta = Math.sin(currentRad);
+            if (sinTheta > 1e-4) {
+              // perp1 = (e2 - cosTheta * e1) / sinTheta (unit vector perpendicular to e1 pointing towards e2)
+              const u1 = subtract(e2, scale(e1, cosTheta));
+              perp1 = scale(u1, 1 / sinTheta);
+
+              // perp2 = (e1 - cosTheta * e2) / sinTheta (unit vector perpendicular to e2 pointing towards e1)
+              const u2 = subtract(e1, scale(e2, cosTheta));
+              perp2 = scale(u2, 1 / sinTheta);
+            } else {
+              // Collinear case (sinTheta ~ 0)
+              let perpAxis = cross(e1, { x: 0, y: 0, z: 1 });
+              if (magnitude(perpAxis) < 0.1) {
+                perpAxis = cross(e1, { x: 1, y: 0, z: 0 });
+              }
+              perp1 = normalize(perpAxis);
+              perp2 = scale(perp1, -1);
             }
-          }
-        }
 
-        if (neighbors.length === 2) {
-          const theta0 = this.getIdealVSEPRAngle(graph, center.id);
-          const n1 = neighbors[0];
-          const n2 = neighbors[1];
-          const currentDeg = angle(n1.position, center.position, n2.position);
-          const angleDeltaRad = ((currentDeg - theta0) * Math.PI) / 180;
-          const vec1 = subtract(n1.position, center.position);
-          const vec2 = subtract(n2.position, center.position);
-          const planeNormal = normalize(cross(vec1, vec2));
-          const forceDir1 = normalize(cross(planeNormal, vec1));
-          const forceDir2 = normalize(cross(vec2, planeNormal));
+            // Analytical restoring forces: F1 = k_theta * deltaTheta * perp1 / r1
+            // When deltaTheta < 0 (current angle < target), F1 acts opposite to perp1 (moves AWAY from n2, opening angle)
+            const f1 = scale(perp1, (kTheta * deltaTheta) / r1);
+            const f2 = scale(perp2, (kTheta * deltaTheta) / r2);
 
-          const f1 = scale(forceDir1, -220.0 * angleDeltaRad);
-          const f2 = scale(forceDir2, -220.0 * angleDeltaRad);
-
-          forces.set(n1.id, add(forces.get(n1.id)!, f1));
-          forces.set(n2.id, add(forces.get(n2.id)!, f2));
-        }
-      }
-
-      // 3. Non-bonded repulsion forces
-      for (let i = 0; i < atoms.length; i++) {
-        for (let j = i + 1; j < atoms.length; j++) {
-          const a1 = atoms[i];
-          const a2 = atoms[j];
-          if (graph.findBond(a1.id, a2.id)) continue;
-
-          const el1 = ElementRepository.getByAtomicNumber(a1.atomicNumber);
-          const el2 = ElementRepository.getByAtomicNumber(a2.atomicNumber);
-          const sigma = ((el1?.vanDerWaalsRadius ?? 1.5) + (el2?.vanDerWaalsRadius ?? 1.5)) * 0.85;
-
-          const r = Math.max(0.2, distance(a1.position, a2.position));
-          if (r < sigma) {
-            const dir1to2 = normalize(subtract(a2.position, a1.position));
-            const repForceMag = Math.min(650, 40.0 * (Math.pow(sigma / r, 12) / r));
-            const f1 = scale(dir1to2, -repForceMag);
-            const f2 = scale(dir1to2, repForceMag);
-
-            forces.set(a1.id, add(forces.get(a1.id)!, f1));
-            forces.set(a2.id, add(forces.get(a2.id)!, f2));
+            forces.set(n1.id, add(forces.get(n1.id)!, f1));
+            forces.set(n2.id, add(forces.get(n2.id)!, f2));
+            forces.set(center.id, subtract(forces.get(center.id)!, add(f1, f2)));
           }
         }
       }
 
-      // Apply gradient step displacement
+    // 3. Non-bonded repulsion forces (Excludes 1,2 bonded and 1,3 1-3 angle pairs as per MM force fields)
+    for (let i = 0; i < atoms.length; i++) {
+      for (let j = i + 1; j < atoms.length; j++) {
+        const a1 = atoms[i];
+        const a2 = atoms[j];
+
+        // Skip 1,2 bonded atoms and 1,3 atoms sharing a central atom
+        if (graph.findBond(a1.id, a2.id)) continue;
+        const n1 = graph.getNeighbors(a1.id);
+        const n2 = graph.getNeighbors(a2.id);
+        const shareCentralAtom = n1.some((neighbor) => n2.some((n) => n.id === neighbor.id));
+        if (shareCentralAtom) continue;
+
+        const el1 = ElementRepository.getByAtomicNumber(a1.atomicNumber);
+        const el2 = ElementRepository.getByAtomicNumber(a2.atomicNumber);
+        const sigma = ((el1?.vanDerWaalsRadius ?? 1.5) + (el2?.vanDerWaalsRadius ?? 1.5)) * 0.85;
+
+        const r = Math.max(0.2, distance(a1.position, a2.position));
+        if (r < sigma) {
+          const dir1to2 = normalize(subtract(a2.position, a1.position));
+          const repForceMag = Math.min(650, 40.0 * (Math.pow(sigma / r, 12) / r));
+          const f1 = scale(dir1to2, -repForceMag);
+          const f2 = scale(dir1to2, repForceMag);
+
+          forces.set(a1.id, add(forces.get(a1.id)!, f1));
+          forces.set(a2.id, add(forces.get(a2.id)!, f2));
+        }
+      }
+    }
+
+      // Apply gradient step displacement: dr = alpha * F (Steepest Descent Optimization)
       let maxDisplacement = 0;
+      const alpha = 0.00035; // Gradient descent learning rate (Å per kJ/mol force)
       for (const atom of atoms) {
         const force = forces.get(atom.id)!;
-        const fMag = Math.sqrt(force.x * force.x + force.y * force.y + force.z * force.z);
+        const fMag = magnitude(force);
 
-        if (fMag > 0.001) {
-          const dispMag = Math.min(0.25, stepSize * fMag);
-          const normF = scale(force, 1 / fMag);
-          const disp = scale(normF, dispMag);
+        if (fMag > 1e-5) {
+          const dispMag = Math.min(0.08, alpha * fMag);
+          const disp = scale(force, dispMag / fMag);
 
           atom.position = {
-            x: Math.round((atom.position.x + disp.x) * 1000) / 1000,
-            y: Math.round((atom.position.y + disp.y) * 1000) / 1000,
-            z: Math.round((atom.position.z + disp.z) * 1000) / 1000
+            x: atom.position.x + disp.x,
+            y: atom.position.y + disp.y,
+            z: atom.position.z + disp.z
           };
 
           if (dispMag > maxDisplacement) {
@@ -309,7 +318,7 @@ export class GeometryOptimizationEngine {
       }
 
       const newEnergy = this.calculatePotentialEnergy(graph);
-      if (maxDisplacement < 0.002 || Math.abs(newEnergy - currentEnergy) < 0.01) {
+      if (maxDisplacement < 0.0002 || Math.abs(newEnergy - currentEnergy) < 0.0001) {
         converged = true;
         currentEnergy = newEnergy;
         break;
