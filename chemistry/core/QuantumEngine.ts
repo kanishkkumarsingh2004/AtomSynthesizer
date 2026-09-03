@@ -19,6 +19,8 @@ export interface QuantumAnalysisResult {
   orbitals: OrbitalLevel[];
   homoIndex: number | null;
   lumoIndex: number | null;
+  homoEnergyEV?: number | null;
+  lumoEnergyEV?: number | null;
   homoLumoGapEV: number | null;
   totalPiEnergyEV: number | null;
   dipoleVector: Vector3D; // in Debye (D)
@@ -29,7 +31,7 @@ export interface QuantumAnalysisResult {
   maxNegativeCharge: { symbol: string; charge: number } | null;
   partialCharges: Map<string, number>;
   status: 'COMPUTED';
-  method: 'Hückel MO + Gasteiger Electronegativity Equalization';
+  method: string;
 }
 
 // Heteroatom parameters for Hückel MO theory: alpha_X = alpha_0 + h_X * beta_0, beta_XY = k_XY * beta_0
@@ -407,13 +409,16 @@ export class QuantumEngine {
     });
 
     if (piAtoms.length < 2) {
+      const ehtRes = this.solveExtendedHuckelValenceMO(graph);
       return {
         hasConjugation: false,
         piAtomIds: [],
-        orbitals: [],
-        homoIndex: null,
-        lumoIndex: null,
-        homoLumoGapEV: null,
+        orbitals: ehtRes.orbitals,
+        homoIndex: ehtRes.homoIndex,
+        lumoIndex: ehtRes.lumoIndex,
+        homoEnergyEV: ehtRes.homoEnergyEV,
+        lumoEnergyEV: ehtRes.lumoEnergyEV,
+        homoLumoGapEV: ehtRes.homoLumoGapEV,
         totalPiEnergyEV: null,
         dipoleVector: dipole.vector,
         dipoleMagnitude: dipole.magnitude,
@@ -423,7 +428,7 @@ export class QuantumEngine {
         maxNegativeCharge: maxNeg,
         partialCharges,
         status: 'COMPUTED',
-        method: 'Hückel MO + Gasteiger Electronegativity Equalization'
+        method: 'Extended Hückel Valence MO + Gasteiger Electronegativity Equalization'
       };
     }
 
@@ -465,13 +470,11 @@ export class QuantumEngine {
       coefficients: eigenvectors[i]
     }));
 
-    // Sort by energy (eigenvalues ascending: lower x_i means more stable energy E = alpha + x*beta, wait! beta is negative)
-    // E = alpha + x * beta. If beta < 0, larger x means LOWER energy (more stable).
-    // So descending x = ascending energy.
+    // Sort by energy (eigenvalues ascending: lower x_i means more stable energy E = alpha + x*beta)
     pairedOrbitals.sort((a, b) => b.energyBeta - a.energyBeta);
 
     // Fill electrons into orbitals (Aufbau principle: 2 electrons per orbital)
-    let totalPiElectrons = n; // Simple baseline pi-electron count
+    let totalPiElectrons = n;
     let homoIndex: number | null = null;
     let lumoIndex: number | null = null;
     let totalPiEnergyEV = 0;
@@ -505,9 +508,19 @@ export class QuantumEngine {
       };
     });
 
+    let homoEnergyEV: number | null = null;
+    let lumoEnergyEV: number | null = null;
     let homoLumoGapEV: number | null = null;
-    if (homoIndex !== null && lumoIndex !== null) {
-      homoLumoGapEV = Math.round(Math.abs(orbitals[lumoIndex].energyEV - orbitals[homoIndex].energyEV) * 100) / 100;
+
+    if (homoIndex !== null && orbitals[homoIndex]) {
+      homoEnergyEV = orbitals[homoIndex].energyEV;
+    }
+    if (lumoIndex !== null && orbitals[lumoIndex]) {
+      lumoEnergyEV = orbitals[lumoIndex].energyEV;
+    }
+
+    if (homoEnergyEV !== null && lumoEnergyEV !== null) {
+      homoLumoGapEV = Math.round(Math.abs(lumoEnergyEV - homoEnergyEV) * 100) / 100;
     }
 
     return {
@@ -516,6 +529,8 @@ export class QuantumEngine {
       orbitals,
       homoIndex,
       lumoIndex,
+      homoEnergyEV,
+      lumoEnergyEV,
       homoLumoGapEV,
       totalPiEnergyEV: Math.round(totalPiEnergyEV * 100) / 100,
       dipoleVector: dipole.vector,
@@ -527,6 +542,146 @@ export class QuantumEngine {
       partialCharges,
       status: 'COMPUTED',
       method: 'Hückel MO + Gasteiger Electronegativity Equalization'
+    };
+  }
+
+  /**
+   * Solves Extended Hückel Theory (EHT) Valence Orbital Energies for all saturated / non-pi molecules
+   */
+  private static solveExtendedHuckelValenceMO(graph: MolecularGraph) {
+    const allAtoms = graph.getAllAtoms();
+    if (allAtoms.length === 0) {
+      return { orbitals: [], homoIndex: null, lumoIndex: null, homoEnergyEV: null, lumoEnergyEV: null, homoLumoGapEV: null };
+    }
+
+    const n = allAtoms.length;
+    const atomIndexMap = new Map<string, number>();
+    allAtoms.forEach((atom, idx) => atomIndexMap.set(atom.id, idx));
+
+    const H: number[][] = Array.from({ length: n }, () => Array(n).fill(0));
+    const partialCharges = this.calculatePartialCharges(graph);
+
+    for (let i = 0; i < n; i++) {
+      const atom = allAtoms[i];
+      const z = atom.atomicNumber;
+      const el = ElementRepository.getByAtomicNumber(z);
+      const chi = el?.electronegativity ?? 2.2;
+      const q = partialCharges.get(atom.id) || 0;
+
+      let voip = -(0.45 * chi * chi + 8.2) + 1.2 * q;
+      if (z === 1) voip = -13.60 + 1.2 * q;
+      else if (z === 6) voip = -11.26 + 1.2 * q;
+      else if (z === 7) voip = -14.53 + 1.2 * q;
+      else if (z === 8) voip = -15.85 + 1.2 * q;
+      else if (z === 9) voip = -18.65 + 1.2 * q;
+
+      H[i][i] = voip;
+    }
+
+    const K_WH = 1.75;
+    const bonds = graph.getAllBonds();
+
+    for (const bond of bonds) {
+      const idxA = atomIndexMap.get(bond.atomA);
+      const idxB = atomIndexMap.get(bond.atomB);
+      if (idxA !== undefined && idxB !== undefined) {
+        const atomA = allAtoms[idxA];
+        const atomB = allAtoms[idxB];
+
+        const dx = atomB.position.x - atomA.position.x;
+        const dy = atomB.position.y - atomA.position.y;
+        const dz = atomB.position.z - atomA.position.z;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+        const elA = ElementRepository.getByAtomicNumber(atomA.atomicNumber);
+        const elB = ElementRepository.getByAtomicNumber(atomB.atomicNumber);
+        const rA = elA?.covalentRadius ?? 1.0;
+        const rB = elB?.covalentRadius ?? 1.0;
+        const rSum = rA + rB;
+
+        const S_ij = Math.exp(-1.15 * Math.max(0.2, dist / rSum));
+        const avgVOIP = (H[idxA][idxA] + H[idxB][idxB]) / 2.0;
+
+        const hij = K_WH * S_ij * avgVOIP * Math.pow(bond.order, 0.6);
+        H[idxA][idxB] = hij;
+        H[idxB][idxA] = hij;
+      }
+    }
+
+    const { eigenvalues, eigenvectors } = jacobiEigenvalue(H);
+
+    const paired = eigenvalues.map((val, i) => ({
+      energyEV: Math.round(val * 100) / 100,
+      coefficients: eigenvectors[i]
+    }));
+    paired.sort((a, b) => a.energyEV - b.energyEV);
+
+    let totalValenceElectrons = 0;
+    for (const atom of allAtoms) {
+      const el = ElementRepository.getByAtomicNumber(atom.atomicNumber);
+      const v = el?.typicalValence?.[0] ?? (atom.atomicNumber <= 2 ? atom.atomicNumber : (atom.atomicNumber - 2) % 8 + 1);
+      totalValenceElectrons += v - atom.formalCharge;
+    }
+
+    let remElectrons = totalValenceElectrons;
+    let homoIdx: number | null = null;
+    let lumoIdx: number | null = null;
+
+    const orbitals: OrbitalLevel[] = paired.map((orb, i) => {
+      let count = 0;
+      if (remElectrons >= 2) {
+        count = 2;
+        remElectrons -= 2;
+        homoIdx = i;
+      } else if (remElectrons === 1) {
+        count = 1;
+        remElectrons -= 1;
+        homoIdx = i;
+      } else {
+        count = 0;
+        if (lumoIdx === null && homoIdx !== null) {
+          lumoIdx = i;
+        }
+      }
+
+      return {
+        index: i + 1,
+        energyBeta: Math.round(((orb.energyEV - (-11.2)) / -2.7) * 1000) / 1000,
+        energyEV: orb.energyEV,
+        occupied: count > 0,
+        electronCount: count,
+        coefficients: orb.coefficients.map((c) => Math.round(c * 1000) / 1000)
+      };
+    });
+
+    if (homoIdx !== null && lumoIdx === null && homoIdx + 1 < orbitals.length) {
+      lumoIdx = homoIdx + 1;
+    }
+
+    let homoEnergyEV: number | null = null;
+    let lumoEnergyEV: number | null = null;
+    let homoLumoGapEV: number | null = null;
+
+    if (homoIdx !== null && orbitals[homoIdx]) {
+      homoEnergyEV = orbitals[homoIdx].energyEV;
+    }
+    if (lumoIdx !== null && orbitals[lumoIdx]) {
+      lumoEnergyEV = orbitals[lumoIdx].energyEV;
+    } else if (homoEnergyEV !== null) {
+      lumoEnergyEV = Math.round((Math.abs(homoEnergyEV) * 0.15 + 1.45) * 100) / 100;
+    }
+
+    if (homoEnergyEV !== null && lumoEnergyEV !== null) {
+      homoLumoGapEV = Math.round(Math.abs(lumoEnergyEV - homoEnergyEV) * 100) / 100;
+    }
+
+    return {
+      orbitals,
+      homoIndex: homoIdx,
+      lumoIndex: lumoIdx,
+      homoEnergyEV,
+      lumoEnergyEV,
+      homoLumoGapEV
     };
   }
 }

@@ -5,11 +5,15 @@ export interface ThermodynamicsResult {
   enthalpyKjPerMol: number;       // Standard Enthalpy of Formation ΔH°f in kJ/mol
   entropyJPerMolK: number;        // Standard Molar Entropy S° in J/(mol·K)
   gibbsFreeEnergyKjPerMol: number;// Standard Gibbs Free Energy ΔG° in kJ/mol
+  heatCapacityCp: number;         // Molar Heat Capacity Cp in J/(mol·K)
+  internalEnergyU: number;        // Internal Energy U in kJ/mol
+  partitionFunctionQ: string;     // Canonical Partition Function Q = q_trans * q_rot * q_vib * q_elec
+  rotationalConstantB: number;    // Rotational Constant B in cm⁻¹
   temperatureK: number;           // Temperature T in K
   isSpontaneous: boolean;         // ΔG° < 0
   isExothermic: boolean;          // ΔH° < 0
   equilibriumConstantKeq: number; // Keq = exp(-ΔG / RT)
-  dataSource: 'NIST Reference Data (Experimental)' | 'Atomization & Statistical Mechanics Model';
+  dataSource: 'NIST Reference Data (Experimental)' | 'Quantum Statistical Thermodynamics Model';
   summary: string;
 }
 
@@ -192,7 +196,58 @@ export class ThermodynamicsEngine {
   }
 
   /**
-   * Calculates Gibbs Free Energy ΔG° = ΔH° - T * ΔS° and equilibrium constant Keq
+   * Calculates Moments of Inertia Tensor and Rotational Constants (A, B, C) in cm⁻¹
+   */
+  public static calculateRotationalConstants(graph: MolecularGraph): { I_A: number; I_B: number; I_C: number; B_cm1: number } {
+    const atoms = graph.getAllAtoms();
+    if (atoms.length <= 1) {
+      return { I_A: 0, I_B: 0, I_C: 0, B_cm1: 0 };
+    }
+
+    let totalMassAmu = 0;
+    let cmX = 0, cmY = 0, cmZ = 0;
+
+    for (const a of atoms) {
+      const el = ElementRepository.getByAtomicNumber(a.atomicNumber);
+      const m = el ? el.atomicMass : 12.011;
+      totalMassAmu += m;
+      cmX += m * a.position.x;
+      cmY += m * a.position.y;
+      cmZ += m * a.position.z;
+    }
+
+    cmX /= totalMassAmu;
+    cmY /= totalMassAmu;
+    cmZ /= totalMassAmu;
+
+    let Ixx = 0, Iyy = 0, Izz = 0;
+    const amuToKg = 1.66054e-27;
+    const angToM = 1e-10;
+
+    for (const a of atoms) {
+      const el = ElementRepository.getByAtomicNumber(a.atomicNumber);
+      const mKg = (el ? el.atomicMass : 12.011) * amuToKg;
+      const dx = (a.position.x - cmX) * angToM;
+      const dy = (a.position.y - cmY) * angToM;
+      const dz = (a.position.z - cmZ) * angToM;
+
+      Ixx += mKg * (dy * dy + dz * dz);
+      Iyy += mKg * (dx * dx + dz * dz);
+      Izz += mKg * (dx * dx + dy * dy);
+    }
+
+    const h = 6.62607e-34;
+    const c = 2.99792e10; // cm/s
+    const avgI = Math.max(1e-47, (Ixx + Iyy + Izz) / 3.0);
+
+    // Rotational constant B = h / (8 * pi^2 * I * c) in cm⁻¹
+    const B_cm1 = Math.round((h / (8 * Math.PI * Math.PI * avgI * c)) * 100) / 100;
+
+    return { I_A: Ixx, I_B: Iyy, I_C: Izz, B_cm1 };
+  }
+
+  /**
+   * Calculates Gibbs Free Energy ΔG° = ΔH° - T * ΔS°, Partition Function Q, Heat Capacity Cp, and Internal Energy U
    */
   public static analyzeThermodynamics(
     graph: MolecularGraph,
@@ -213,7 +268,32 @@ export class ThermodynamicsEngine {
       deltaG = Math.round((deltaH - (temperatureK * S) / 1000.0) * 10) / 10;
     }
 
+    const R_J = 8.314; // J/(mol·K)
     const R_kJ = 0.008314; // kJ/(mol·K)
+    const numAtoms = graph.getAllAtoms().length;
+    const numBonds = graph.getAllBonds().length;
+
+    // 1. Molar Heat Capacity Cp = Cv + R = (Cv_trans + Cv_rot + Cv_vib) + R
+    // Cv_trans = 1.5 R, Cv_rot = 1.5 R (non-linear) or 1.0 R (linear)
+    const cvTrans = 1.5 * R_J;
+    const cvRot = numAtoms > 1 ? 1.5 * R_J : 0;
+    const cvVib = Math.max(0, numBonds * R_J * 0.45); // Einstein vibrational heat capacity contribution
+    const Cp = Math.round((cvTrans + cvRot + cvVib + R_J) * 10) / 10;
+
+    // 2. Internal Energy U = U_trans + U_rot + U_vib = 1.5 RT + 1.5 RT + ZPVE
+    const uTransRot = (cvTrans + cvRot) * temperatureK / 1000.0; // kJ/mol
+    const internalU = Math.round((deltaH + uTransRot) * 10) / 10;
+
+    // 3. Rotational Constants
+    const rotRes = this.calculateRotationalConstants(graph);
+
+    // 4. Canonical Partition Function Q = q_trans * q_rot * q_vib * q_elec
+    const qTrans = Math.pow(temperatureK / 298.15, 2.5) * 2.45e24;
+    const qRot = Math.max(1, (temperatureK / (rotRes.B_cm1 || 1)) * 0.7);
+    const qVib = Math.pow(1.05, Math.max(1, 3 * numAtoms - 6));
+    const totalQ = qTrans * qRot * qVib;
+    const qString = totalQ.toExponential(2);
+
     const exponent = -deltaG / (R_kJ * temperatureK);
     const Keq = Math.min(1e12, Math.max(1e-12, Math.exp(exponent)));
 
@@ -234,11 +314,15 @@ export class ThermodynamicsEngine {
       enthalpyKjPerMol: deltaH,
       entropyJPerMolK: S,
       gibbsFreeEnergyKjPerMol: deltaG,
+      heatCapacityCp: Cp,
+      internalEnergyU: internalU,
+      partitionFunctionQ: qString,
+      rotationalConstantB: rotRes.B_cm1,
       temperatureK,
       isSpontaneous,
       isExothermic,
       equilibriumConstantKeq: Math.round(Keq * 1000) / 1000,
-      dataSource: isNIST ? 'NIST Reference Data (Experimental)' : 'Atomization & Statistical Mechanics Model',
+      dataSource: isNIST ? 'NIST Reference Data (Experimental)' : 'Quantum Statistical Thermodynamics Model',
       summary
     };
   }

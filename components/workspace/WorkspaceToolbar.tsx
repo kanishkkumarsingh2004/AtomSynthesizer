@@ -20,7 +20,9 @@ import {
   Sparkles,
   Activity,
   Target,
-  ShoppingBag
+  ShoppingBag,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useSelectionStore } from '../../stores/selectionStore';
@@ -44,6 +46,8 @@ export const WorkspaceToolbar: React.FC = () => {
   const togglePeriodicTable = useUIStore((state) => state.togglePeriodicTable);
   const toggleInspector = useUIStore((state) => state.toggleInspector);
   const showToast = useUIStore((state) => state.showToast);
+  const themeMode = useUIStore((state) => state.themeMode);
+  const toggleThemeMode = useUIStore((state) => state.toggleThemeMode);
 
   const canUndo = useHistoryStore((state) => state.canUndo);
   const canRedo = useHistoryStore((state) => state.canRedo);
@@ -136,11 +140,10 @@ export const WorkspaceToolbar: React.FC = () => {
         {/* Preset Molecule Marketplace */}
         <button
           onClick={() => useUIStore.getState().toggleMarketplace()}
-          className="flex items-center gap-1.5 rounded bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 px-2.5 py-1 text-[11px] font-bold text-white shadow-md shadow-purple-950/50 border border-purple-400/30 transition active:scale-95"
+          className="flex items-center justify-center rounded bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 p-1.5 text-white shadow-md shadow-purple-950/50 border border-purple-400/30 transition active:scale-95"
           title="Open Preset Molecule Marketplace & 3D Library"
         >
           <ShoppingBag className="h-3.5 w-3.5 text-amber-300 animate-bounce" />
-          <span className="tracking-tight">Marketplace</span>
         </button>
       </div>
 
@@ -277,6 +280,7 @@ export const WorkspaceToolbar: React.FC = () => {
           <option value="SPACE_FILLING">Space Filling</option>
           <option value="STICK">Stick</option>
           <option value="WIREFRAME">Wireframe</option>
+          <option value="ATOMIC_NUCLEUS">Atomic Nucleus & Electrons</option>
         </select>
 
         <button
@@ -319,6 +323,23 @@ export const WorkspaceToolbar: React.FC = () => {
           title="Toggle Inspector Panel"
         >
           <SlidersHorizontal className="h-3 w-3 text-purple-400" />
+        </button>
+
+        {/* Sun / Moon Theme Switcher (Light / Dark Mode) */}
+        <button
+          onClick={() => {
+            const nextMode = themeMode === 'dark' ? 'light' : 'dark';
+            toggleThemeMode();
+            showToast(`Theme switched to ${nextMode.toUpperCase()} Mode`);
+          }}
+          className="flex items-center justify-center rounded bg-slate-900 border border-slate-800 p-1.5 text-slate-300 hover:bg-slate-800 hover:text-white transition active:scale-95"
+          title={`Switch to ${themeMode === 'dark' ? 'Light' : 'Dark'} Mode`}
+        >
+          {themeMode === 'dark' ? (
+            <Sun className="h-3.5 w-3.5 text-amber-400" />
+          ) : (
+            <Moon className="h-3.5 w-3.5 text-indigo-400" />
+          )}
         </button>
       </div>
     </header>

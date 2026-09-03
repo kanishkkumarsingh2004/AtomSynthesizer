@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { WorkspaceTool } from '../domain/molecular/MolecularTypes';
 
-export type RenderingMode = 'BALL_AND_STICK' | 'SPACE_FILLING' | 'STICK' | 'WIREFRAME';
+export type RenderingMode = 'BALL_AND_STICK' | 'SPACE_FILLING' | 'STICK' | 'WIREFRAME' | 'ATOMIC_NUCLEUS';
 
 export interface WorkspaceState {
   activeTool: WorkspaceTool;

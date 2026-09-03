@@ -5,13 +5,25 @@ import { Molecule } from '../../domain/molecular/Molecule';
 import { AtomRenderer } from './AtomRenderer';
 import { BondRenderer } from './BondRenderer';
 import { MolecularLabels } from './MolecularLabels';
+import { AtomicNucleusRenderer } from './AtomicNucleusRenderer';
+import { useWorkspaceStore } from '../../stores/workspaceStore';
 
 interface MoleculeRendererProps {
   molecule: Molecule;
 }
 
 export const MoleculeRenderer: React.FC<MoleculeRendererProps> = ({ molecule }) => {
+  const renderingMode = useWorkspaceStore((state) => state.renderingMode);
   const atomMap = new Map(molecule.atoms.map((a) => [a.id, a]));
+
+  if (renderingMode === 'ATOMIC_NUCLEUS') {
+    return (
+      <group>
+        <AtomicNucleusRenderer molecule={molecule} />
+        <MolecularLabels molecule={molecule} />
+      </group>
+    );
+  }
 
   return (
     <group>

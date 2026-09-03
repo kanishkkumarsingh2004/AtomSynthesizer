@@ -20,6 +20,8 @@ export const MoleculeInspector: React.FC = () => {
   const handleCelsiusChange = (newCelsius: number) => {
     const newK = Math.round((newCelsius + 273.15) * 100) / 100;
     setTemperatureK(newK);
+    useWorkspaceStore.getState().setReactionSimulationActive(true);
+    useWorkspaceStore.getState().setLivePhysicsEnabled(true);
   };
 
   const vib = analysis.vibrationalThermal;
@@ -125,14 +127,16 @@ export const MoleculeInspector: React.FC = () => {
               <span className="text-emerald-300 font-bold">{vib.thermalAmplitudeAngstrom} Å</span>
             </div>
             <div>
-              <span className="text-slate-500">Stability State:</span>{' '}
-              <span className={
-                vib.thermalStabilityBadge === 'THERMALLY STABLE' ? 'text-emerald-400 font-extrabold' :
-                vib.thermalStabilityBadge === 'THERMALLY EXCITED' ? 'text-amber-400 font-extrabold' :
-                'text-rose-400 font-extrabold'
-              }>
-                {vib.thermalStabilityBadge}
-              </span>
+              <span className="text-slate-500">Zero-Point Energy (ZPVE):</span>{' '}
+              <span className="text-purple-300 font-extrabold">{vib.zeroPointEnergyKjPerMol} kJ/mol</span>
+            </div>
+            <div>
+              <span className="text-slate-500">Freq (Hooke's ν):</span>{' '}
+              <span className="text-cyan-300 font-extrabold">{vib.primaryFrequencyWavenumberCm1} cm⁻¹</span>
+            </div>
+            <div>
+              <span className="text-slate-500">Stiffness (k):</span>{' '}
+              <span className="text-amber-300 font-extrabold">{vib.bondStiffnessForceConstant} N/m</span>
             </div>
           </div>
 
@@ -160,16 +164,24 @@ export const MoleculeInspector: React.FC = () => {
             </span>
           </div>
           <div>
+            <span className="text-slate-500">Heat Cap (Cp):</span>{' '}
+            <span className="text-cyan-300 font-bold">{analysis.thermodynamics.heatCapacityCp} J/mol·K</span>
+          </div>
+          <div>
+            <span className="text-slate-500">Internal Energy (U):</span>{' '}
+            <span className="text-purple-300 font-bold">{analysis.thermodynamics.internalEnergyU} kJ/mol</span>
+          </div>
+          <div>
+            <span className="text-slate-500">Partition Func (Q):</span>{' '}
+            <span className="text-amber-300 font-bold">{analysis.thermodynamics.partitionFunctionQ}</span>
+          </div>
+          <div>
+            <span className="text-slate-500">Rotational B:</span>{' '}
+            <span className="text-indigo-300 font-bold">{analysis.thermodynamics.rotationalConstantB} cm⁻¹</span>
+          </div>
+          <div>
             <span className="text-slate-500">Keq:</span>{' '}
             <span className="text-slate-200">{analysis.thermodynamics.equilibriumConstantKeq}</span>
-          </div>
-          <div>
-            <span className="text-slate-500">Ea (Barrier):</span>{' '}
-            <span className="text-slate-200">{analysis.kinetics.activationEnergyKjPerMol} kJ/mol</span>
-          </div>
-          <div>
-            <span className="text-slate-500">Rate Const (k):</span>{' '}
-            <span className="text-slate-200">{analysis.kinetics.rateConstantK} s⁻¹</span>
           </div>
         </div>
 
@@ -209,23 +221,27 @@ export const MoleculeInspector: React.FC = () => {
           </div>
           <div>
             <span className="text-slate-500">HOMO Energy:</span>{' '}
-            <span className="text-purple-300">
-              {analysis.quantum.homoIndex !== null && analysis.quantum.orbitals[analysis.quantum.homoIndex]
-                ? `${analysis.quantum.orbitals[analysis.quantum.homoIndex].energyEV} eV`
-                : 'N/A'}
+            <span className="text-purple-300 font-extrabold">
+              {analysis.quantum.homoEnergyEV !== undefined && analysis.quantum.homoEnergyEV !== null
+                ? `${analysis.quantum.homoEnergyEV} eV`
+                : (analysis.quantum.homoIndex !== null && analysis.quantum.orbitals[analysis.quantum.homoIndex]
+                    ? `${analysis.quantum.orbitals[analysis.quantum.homoIndex].energyEV} eV`
+                    : 'N/A')}
             </span>
           </div>
           <div>
             <span className="text-slate-500">LUMO Energy:</span>{' '}
-            <span className="text-cyan-300">
-              {analysis.quantum.lumoIndex !== null && analysis.quantum.orbitals[analysis.quantum.lumoIndex]
-                ? `${analysis.quantum.orbitals[analysis.quantum.lumoIndex].energyEV} eV`
-                : 'N/A'}
+            <span className="text-cyan-300 font-extrabold">
+              {analysis.quantum.lumoEnergyEV !== undefined && analysis.quantum.lumoEnergyEV !== null
+                ? `${analysis.quantum.lumoEnergyEV} eV`
+                : (analysis.quantum.lumoIndex !== null && analysis.quantum.orbitals[analysis.quantum.lumoIndex]
+                    ? `${analysis.quantum.orbitals[analysis.quantum.lumoIndex].energyEV} eV`
+                    : 'N/A')}
             </span>
           </div>
           <div>
             <span className="text-slate-500">HOMO-LUMO Gap:</span>{' '}
-            <span className="text-emerald-300 font-bold">
+            <span className="text-emerald-300 font-extrabold">
               {analysis.quantum.homoLumoGapEV !== null ? `${analysis.quantum.homoLumoGapEV} eV` : 'N/A'}
             </span>
           </div>

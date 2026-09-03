@@ -7,6 +7,7 @@ export interface UIState {
   elementSearchQuery: string;
   activeBottomTab: 'molecules' | 'analysis' | 'console';
   toastMessage: string | null;
+  themeMode: 'dark' | 'light';
 
   setPeriodicTableOpen: (open: boolean) => void;
   togglePeriodicTable: () => void;
@@ -18,6 +19,8 @@ export interface UIState {
   setActiveBottomTab: (tab: 'molecules' | 'analysis' | 'console') => void;
   showToast: (msg: string) => void;
   clearToast: () => void;
+  setThemeMode: (mode: 'dark' | 'light') => void;
+  toggleThemeMode: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -27,6 +30,7 @@ export const useUIStore = create<UIState>((set) => ({
   elementSearchQuery: '',
   activeBottomTab: 'molecules',
   toastMessage: null,
+  themeMode: 'dark',
 
   setPeriodicTableOpen: (open) => set({ periodicTableOpen: open }),
   togglePeriodicTable: () => set((state) => ({ periodicTableOpen: !state.periodicTableOpen })),
@@ -37,5 +41,7 @@ export const useUIStore = create<UIState>((set) => ({
   setElementSearchQuery: (query) => set({ elementSearchQuery: query }),
   setActiveBottomTab: (tab) => set({ activeBottomTab: tab }),
   showToast: (msg) => set({ toastMessage: msg }),
-  clearToast: () => set({ toastMessage: null })
+  clearToast: () => set({ toastMessage: null }),
+  setThemeMode: (mode) => set({ themeMode: mode }),
+  toggleThemeMode: () => set((state) => ({ themeMode: state.themeMode === 'dark' ? 'light' : 'dark' }))
 }));

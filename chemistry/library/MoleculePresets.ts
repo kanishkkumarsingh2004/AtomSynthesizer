@@ -77,6 +77,64 @@ export const MOLECULE_PRESETS: MoleculePreset[] = [
       return opt.optimizedMolecule;
     }
   },
+  // 1b. NEOPENTANE (2,2-dimethylpropane)
+  {
+    id: 'neopentane',
+    name: 'Neopentane',
+    iupacName: '2,2-Dimethylpropane',
+    formula: 'C5H12',
+    category: 'Alkanes',
+    description: 'Double-branched quaternary alkane featuring perfect Td tetrahedral symmetry and 4 methyl groups.',
+    polarizability: 9.95,
+    dipoleMoment: 0.00,
+    enthalpy: -168.0,
+    pointGroup: 'Td',
+    atomCount: 17,
+    bondCount: 16,
+    builder: () => {
+      const graph = new MolecularGraph('mol_neopentane', 'Neopentane');
+      // Quaternary Central Carbon C1
+      graph.addAtom({ id: 'c1', atomicNumber: 6, position: { x: 0, y: 0, z: 0 }, formalCharge: 0, moleculeId: 'mol_neopentane' });
+
+      // 4 Methyl Carbons (C2, C3, C4, C5) in Td symmetry
+      const dC = 1.54 / Math.sqrt(3);
+      graph.addAtom({ id: 'c2', atomicNumber: 6, position: { x: dC, y: dC, z: dC }, formalCharge: 0, moleculeId: 'mol_neopentane' });
+      graph.addAtom({ id: 'c3', atomicNumber: 6, position: { x: -dC, y: -dC, z: dC }, formalCharge: 0, moleculeId: 'mol_neopentane' });
+      graph.addAtom({ id: 'c4', atomicNumber: 6, position: { x: -dC, y: dC, z: -dC }, formalCharge: 0, moleculeId: 'mol_neopentane' });
+      graph.addAtom({ id: 'c5', atomicNumber: 6, position: { x: dC, y: -dC, z: -dC }, formalCharge: 0, moleculeId: 'mol_neopentane' });
+
+      // 4 C-C bonds
+      graph.addBond({ id: 'b_cc1', atomA: 'c1', atomB: 'c2', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_cc2', atomA: 'c1', atomB: 'c3', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_cc3', atomA: 'c1', atomB: 'c4', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_cc4', atomA: 'c1', atomB: 'c5', order: 1, type: 'SINGLE' });
+
+      // 12 Methyl Hydrogens (3 per methyl carbon)
+      const methyls = ['c2', 'c3', 'c4', 'c5'];
+      let hCounter = 1;
+      for (const mId of methyls) {
+        const mAtom = graph.getAtom(mId)!;
+        for (let j = 1; j <= 3; j++) {
+          const hId = `h_${mId}_${j}`;
+          graph.addAtom({
+            id: hId,
+            atomicNumber: 1,
+            position: {
+              x: mAtom.position.x + (j === 1 ? 0.9 : j === 2 ? -0.5 : 0.2),
+              y: mAtom.position.y + (j === 1 ? 0.3 : j === 2 ? 0.8 : -0.9),
+              z: mAtom.position.z + (j === 3 ? 0.8 : -0.5)
+            },
+            formalCharge: 0,
+            moleculeId: 'mol_neopentane'
+          });
+          graph.addBond({ id: `b_h_${hCounter++}`, atomA: mId, atomB: hId, order: 1, type: 'SINGLE' });
+        }
+      }
+
+      const opt = GeometryOptimizationEngine.optimizeGeometry(graph.toMolecule(), 50);
+      return opt.optimizedMolecule;
+    }
+  },
 
   // 2. METHANE
   {

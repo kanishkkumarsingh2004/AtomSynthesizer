@@ -5,6 +5,7 @@ import { Html } from '@react-three/drei';
 import { Molecule } from '../../domain/molecular/Molecule';
 import { ElementRepository } from '../../domain/elements/ElementRepository';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
+import { useUIStore } from '../../stores/uiStore';
 
 interface MolecularLabelsProps {
   molecule: Molecule;
@@ -12,8 +13,9 @@ interface MolecularLabelsProps {
 
 export const MolecularLabels: React.FC<MolecularLabelsProps> = ({ molecule }) => {
   const showLabels = useWorkspaceStore((state) => state.showLabels);
+  const marketplaceOpen = useUIStore((state) => state.marketplaceOpen);
 
-  if (!showLabels) return null;
+  if (!showLabels || marketplaceOpen) return null;
 
   return (
     <group>
@@ -29,7 +31,7 @@ export const MolecularLabels: React.FC<MolecularLabelsProps> = ({ molecule }) =>
 
         return (
           <group key={atom.id} position={[atom.position.x, atom.position.y + 0.6, atom.position.z]}>
-            <Html center distanceFactor={12}>
+            <Html center distanceFactor={12} zIndexRange={[10, 0]}>
               <div className="pointer-events-none select-none rounded bg-black/75 px-1.5 py-0.5 text-xs font-mono font-semibold text-white backdrop-blur-sm shadow border border-white/10 flex items-center gap-0.5">
                 <span>{symbol}</span>
                 {chargeStr && (
