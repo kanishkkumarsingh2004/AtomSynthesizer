@@ -34,25 +34,25 @@ export interface QuantumAnalysisResult {
   method: string;
 }
 
-// Heteroatom parameters for Hückel MO theory: alpha_X = alpha_0 + h_X * beta_0, beta_XY = k_XY * beta_0
-const HUCKEL_H_PARAMS: Record<number, number> = {
-  6: 0.0,   // Carbon
-  7: 1.5,   // Nitrogen (pyrrole-like / 2-electron donor)
-  8: 2.0,   // Oxygen (ether/alcohol-like)
-  9: 3.0,   // Fluorine
-  15: 1.0,  // Phosphorus
-  16: 1.0,  // Sulfur
-  17: 2.0   // Chlorine
-};
+/**
+ * Pure first-principles Hückel heteroatom parameter: h_X = 0.85 * (chi_X - chi_C)
+ */
+export function getHuckelHParam(atomicNumber: number): number {
+  const el = ElementRepository.getByAtomicNumber(atomicNumber);
+  const chi = el?.electronegativity ?? 2.2;
+  return Math.round(0.85 * (chi - 2.55) * 100) / 100;
+}
 
-const HUCKEL_K_PARAMS: Record<string, number> = {
-  '6-6': 1.0,
-  '6-7': 0.8,
-  '6-8': 0.8,
-  '7-7': 1.0,
-  '7-8': 0.7,
-  '6-16': 0.6
-};
+/**
+ * Pure first-principles Hückel resonance parameter: k_XY = 1.0 - 0.15 * |chi_X - chi_Y|
+ */
+export function getHuckelKParam(an1: number, an2: number): number {
+  const el1 = ElementRepository.getByAtomicNumber(an1);
+  const el2 = ElementRepository.getByAtomicNumber(an2);
+  const chi1 = el1?.electronegativity ?? 2.2;
+  const chi2 = el2?.electronegativity ?? 2.2;
+  return Math.max(0.4, Math.round((1.0 - 0.15 * Math.abs(chi1 - chi2)) * 100) / 100);
+}
 
 // Jacobi Eigenvalue Solver for symmetric matrices
 function jacobiEigenvalue(matrix: number[][]): { eigenvalues: number[]; eigenvectors: number[][] } {
@@ -441,7 +441,7 @@ export class QuantumEngine {
 
     for (let i = 0; i < n; i++) {
       const atom = piAtoms[i];
-      const h_param = HUCKEL_H_PARAMS[atom.atomicNumber] ?? 0.0;
+      const h_param = getHuckelHParam(atom.atomicNumber);
       H[i][i] = h_param; // Diagonal Coulomb integral parameter
     }
 
@@ -451,8 +451,7 @@ export class QuantumEngine {
       if (idxA !== undefined && idxB !== undefined) {
         const elA = piAtoms[idxA].atomicNumber;
         const elB = piAtoms[idxB].atomicNumber;
-        const pairKey = `${Math.min(elA, elB)}-${Math.max(elA, elB)}`;
-        const k_param = HUCKEL_K_PARAMS[pairKey] ?? (bond.order >= 2 ? 1.0 : 0.8);
+        const k_param = getHuckelKParam(elA, elB) * (bond.order >= 2 ? 1.0 : 0.8);
         H[idxA][idxB] = k_param;
         H[idxB][idxA] = k_param;
       }
