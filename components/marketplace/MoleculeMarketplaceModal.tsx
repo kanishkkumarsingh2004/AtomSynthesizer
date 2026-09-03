@@ -18,6 +18,7 @@ import { useUIStore } from '../../stores/uiStore';
 import { useMoleculeStore } from '../../stores/moleculeStore';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { MOLECULE_PRESETS, MoleculePreset } from '../../chemistry/library/MoleculePresets';
+import { SubscriptFormula } from '../common/SubscriptFormula';
 
 export const MoleculeMarketplaceModal: React.FC = () => {
   const isOpen = useUIStore((state) => state.marketplaceOpen);
@@ -35,9 +36,9 @@ export const MoleculeMarketplaceModal: React.FC = () => {
     'ALL',
     'Alkanes',
     'Aromatics',
+    'Biomolecules',
     'Gases & Solvents',
-    'Carbonyls & Alcohols',
-    'Biomolecules'
+    'Carbonyls & Alcohols'
   ];
 
   const filteredPresets = MOLECULE_PRESETS.filter((preset) => {
@@ -168,7 +169,7 @@ export const MoleculeMarketplaceModal: React.FC = () => {
                       </div>
 
                       <span className="rounded-lg bg-indigo-950/80 border border-indigo-700/60 px-2.5 py-1 font-mono text-xs font-bold text-indigo-200 shadow-sm">
-                        {preset.formula}
+                        <SubscriptFormula formula={preset.formula} />
                       </span>
                     </div>
 

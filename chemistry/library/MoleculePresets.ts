@@ -561,5 +561,675 @@ export const MOLECULE_PRESETS: MoleculePreset[] = [
       const opt = GeometryOptimizationEngine.optimizeGeometry(graph.toMolecule(), 50);
       return opt.optimizedMolecule;
     }
+  },
+
+  // 13. TNT (Trinitrotoluene)
+  {
+    id: 'tnt',
+    name: 'TNT',
+    iupacName: '2,4,6-Trinitrotoluene',
+    formula: 'C7H5N3O6',
+    category: 'Aromatics',
+    description: 'Nitroaromatic explosive compound featuring a central toluene core substituted with 3 nitro groups (-NO2).',
+    polarizability: 17.5,
+    dipoleMoment: 1.15,
+    enthalpy: -64.2,
+    pointGroup: 'C1',
+    atomCount: 21,
+    bondCount: 21,
+    builder: () => {
+      const graph = new MolecularGraph('mol_tnt', 'TNT');
+      // Benzene ring carbons (C1 to C6)
+      const r = 1.40;
+      for (let i = 0; i < 6; i++) {
+        const ang = (i * Math.PI) / 3;
+        graph.addAtom({
+          id: `c${i + 1}`,
+          atomicNumber: 6,
+          position: { x: r * Math.cos(ang), y: r * Math.sin(ang), z: 0 },
+          formalCharge: 0,
+          moleculeId: 'mol_tnt'
+        });
+      }
+      for (let i = 0; i < 6; i++) {
+        const next = (i + 1) % 6;
+        graph.addBond({
+          id: `b_cc_${i + 1}_${next + 1}`,
+          atomA: `c${i + 1}`,
+          atomB: `c${next + 1}`,
+          order: 1.5,
+          type: 'AROMATIC',
+          aromatic: true
+        });
+      }
+
+      // Methyl group on C1 (at 0 deg)
+      graph.addAtom({ id: 'c_methyl', atomicNumber: 6, position: { x: 2.9, y: 0, z: 0 }, formalCharge: 0, moleculeId: 'mol_tnt' });
+      graph.addBond({ id: 'b_c1_m', atomA: 'c1', atomB: 'c_methyl', order: 1, type: 'SINGLE' });
+      graph.addAtom({ id: 'h_m1', atomicNumber: 1, position: { x: 3.5, y: 0.8, z: 0.5 }, formalCharge: 0, moleculeId: 'mol_tnt' });
+      graph.addAtom({ id: 'h_m2', atomicNumber: 1, position: { x: 3.5, y: -0.8, z: 0.5 }, formalCharge: 0, moleculeId: 'mol_tnt' });
+      graph.addAtom({ id: 'h_m3', atomicNumber: 1, position: { x: 3.2, y: 0, z: -1.0 }, formalCharge: 0, moleculeId: 'mol_tnt' });
+      graph.addBond({ id: 'b_hm1', atomA: 'c_methyl', atomB: 'h_m1', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_hm2', atomA: 'c_methyl', atomB: 'h_m2', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_hm3', atomA: 'c_methyl', atomB: 'h_m3', order: 1, type: 'SINGLE' });
+
+      // Nitro groups on C2, C4, C6
+      const nitroSub = [
+        { cId: 'c2', nId: 'n2', o1: 'o2a', o2: 'o2b', angle: Math.PI / 3 },
+        { cId: 'c4', nId: 'n4', o1: 'o4a', o2: 'o4b', angle: Math.PI },
+        { cId: 'c6', nId: 'n6', o1: 'o6a', o2: 'o6b', angle: (5 * Math.PI) / 3 }
+      ];
+
+      nitroSub.forEach((nGroup) => {
+        const nx = 2.65 * Math.cos(nGroup.angle);
+        const ny = 2.65 * Math.sin(nGroup.angle);
+        graph.addAtom({ id: nGroup.nId, atomicNumber: 7, position: { x: nx, y: ny, z: 0 }, formalCharge: 1, moleculeId: 'mol_tnt' });
+        graph.addBond({ id: `b_${nGroup.cId}_${nGroup.nId}`, atomA: nGroup.cId, atomB: nGroup.nId, order: 1, type: 'SINGLE' });
+
+        const o1x = nx + 1.25 * Math.cos(nGroup.angle + 0.5);
+        const o1y = ny + 1.25 * Math.sin(nGroup.angle + 0.5);
+        const o2x = nx + 1.25 * Math.cos(nGroup.angle - 0.5);
+        const o2y = ny + 1.25 * Math.sin(nGroup.angle - 0.5);
+
+        graph.addAtom({ id: nGroup.o1, atomicNumber: 8, position: { x: o1x, y: o1y, z: 0 }, formalCharge: -1, moleculeId: 'mol_tnt' });
+        graph.addAtom({ id: nGroup.o2, atomicNumber: 8, position: { x: o2x, y: o2y, z: 0 }, formalCharge: 0, moleculeId: 'mol_tnt' });
+
+        graph.addBond({ id: `b_${nGroup.nId}_${nGroup.o1}`, atomA: nGroup.nId, atomB: nGroup.o1, order: 1, type: 'SINGLE' });
+        graph.addBond({ id: `b_${nGroup.nId}_${nGroup.o2}`, atomA: nGroup.nId, atomB: nGroup.o2, order: 2, type: 'DOUBLE' });
+      });
+
+      // Hydrogens on C3 and C5
+      graph.addAtom({ id: 'h3', atomicNumber: 1, position: { x: 2.3 * Math.cos((2 * Math.PI) / 3), y: 2.3 * Math.sin((2 * Math.PI) / 3), z: 0 }, formalCharge: 0, moleculeId: 'mol_tnt' });
+      graph.addAtom({ id: 'h5', atomicNumber: 1, position: { x: 2.3 * Math.cos((4 * Math.PI) / 3), y: 2.3 * Math.sin((4 * Math.PI) / 3), z: 0 }, formalCharge: 0, moleculeId: 'mol_tnt' });
+      graph.addBond({ id: 'b_c3h', atomA: 'c3', atomB: 'h3', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_c5h', atomA: 'c5', atomB: 'h5', order: 1, type: 'SINGLE' });
+
+      const opt = GeometryOptimizationEngine.optimizeGeometry(graph.toMolecule(), 50);
+      return opt.optimizedMolecule;
+    }
+  },
+
+  // 14. DOPAMINE
+  {
+    id: 'dopamine',
+    name: 'Dopamine',
+    iupacName: '4-(2-Aminoethyl)benzene-1,2-diol',
+    formula: 'C8H11NO2',
+    category: 'Biomolecules',
+    description: 'Crucial catecholamine neurotransmitter governing reward, motivation, motor control, and cognitive executive function.',
+    polarizability: 16.2,
+    dipoleMoment: 2.85,
+    enthalpy: -312.0,
+    pointGroup: 'C1',
+    atomCount: 22,
+    bondCount: 22,
+    builder: () => {
+      const graph = new MolecularGraph('mol_dopamine', 'Dopamine');
+      // Benzene ring carbons
+      for (let i = 0; i < 6; i++) {
+        const ang = (i * Math.PI) / 3;
+        graph.addAtom({
+          id: `c${i + 1}`,
+          atomicNumber: 6,
+          position: { x: 1.4 * Math.cos(ang), y: 1.4 * Math.sin(ang), z: 0 },
+          formalCharge: 0,
+          moleculeId: 'mol_dopamine'
+        });
+      }
+      for (let i = 0; i < 6; i++) {
+        const next = (i + 1) % 6;
+        graph.addBond({ id: `b_cc_${i + 1}_${next + 1}`, atomA: `c${i + 1}`, atomB: `c${next + 1}`, order: 1.5, type: 'AROMATIC', aromatic: true });
+      }
+
+      // 1,2-Diol Hydroxyls on C1 and C2
+      graph.addAtom({ id: 'o1', atomicNumber: 8, position: { x: 2.7, y: 0.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_dopamine' });
+      graph.addAtom({ id: 'h_o1', atomicNumber: 1, position: { x: 3.4, y: -0.4, z: 0 }, formalCharge: 0, moleculeId: 'mol_dopamine' });
+      graph.addBond({ id: 'b_c1o1', atomA: 'c1', atomB: 'o1', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_o1h', atomA: 'o1', atomB: 'h_o1', order: 1, type: 'SINGLE' });
+
+      graph.addAtom({ id: 'o2', atomicNumber: 8, position: { x: 1.4, y: 2.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_dopamine' });
+      graph.addAtom({ id: 'h_o2', atomicNumber: 1, position: { x: 2.2, y: 3.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_dopamine' });
+      graph.addBond({ id: 'b_c2o2', atomA: 'c2', atomB: 'o2', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_o2h', atomA: 'o2', atomB: 'h_o2', order: 1, type: 'SINGLE' });
+
+      // Ethylamine chain on C4
+      graph.addAtom({ id: 'ca', atomicNumber: 6, position: { x: -2.7, y: -0.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_dopamine' });
+      graph.addAtom({ id: 'cb', atomicNumber: 6, position: { x: -4.0, y: 0.6, z: 0 }, formalCharge: 0, moleculeId: 'mol_dopamine' });
+      graph.addAtom({ id: 'n_amine', atomicNumber: 7, position: { x: -5.3, y: -0.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_dopamine' });
+
+      graph.addBond({ id: 'b_c4ca', atomA: 'c4', atomB: 'ca', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_cacb', atomA: 'ca', atomB: 'cb', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_cbn', atomA: 'cb', atomB: 'n_amine', order: 1, type: 'SINGLE' });
+
+      // Amine Hydrogens
+      graph.addAtom({ id: 'hn1', atomicNumber: 1, position: { x: -6.0, y: 0.3, z: 0.6 }, formalCharge: 0, moleculeId: 'mol_dopamine' });
+      graph.addAtom({ id: 'hn2', atomicNumber: 1, position: { x: -6.0, y: 0.3, z: -0.6 }, formalCharge: 0, moleculeId: 'mol_dopamine' });
+      graph.addBond({ id: 'b_nh1', atomA: 'n_amine', atomB: 'hn1', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_nh2', atomA: 'n_amine', atomB: 'hn2', order: 1, type: 'SINGLE' });
+
+      // Ring hydrogens on C3, C5, C6
+      const rHydrogens = [
+        { cId: 'c3', hId: 'h3', pos: { x: -0.7, y: 2.3, z: 0 } },
+        { cId: 'c5', hId: 'h5', pos: { x: -2.3, y: -1.7, z: 0 } },
+        { cId: 'c6', hId: 'h6', pos: { x: 1.2, y: -2.3, z: 0 } }
+      ];
+      rHydrogens.forEach((rh) => {
+        graph.addAtom({ id: rh.hId, atomicNumber: 1, position: rh.pos, formalCharge: 0, moleculeId: 'mol_dopamine' });
+        graph.addBond({ id: `b_${rh.cId}h`, atomA: rh.cId, atomB: rh.hId, order: 1, type: 'SINGLE' });
+      });
+
+      // Chain hydrogens on Ca and Cb
+      graph.addAtom({ id: 'hca1', atomicNumber: 1, position: { x: -2.7, y: -0.8, z: 0.9 }, formalCharge: 0, moleculeId: 'mol_dopamine' });
+      graph.addAtom({ id: 'hca2', atomicNumber: 1, position: { x: -2.7, y: -0.8, z: -0.9 }, formalCharge: 0, moleculeId: 'mol_dopamine' });
+      graph.addBond({ id: 'b_cah1', atomA: 'ca', atomB: 'hca1', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_cah2', atomA: 'ca', atomB: 'hca2', order: 1, type: 'SINGLE' });
+
+      graph.addAtom({ id: 'hcb1', atomicNumber: 1, position: { x: -4.0, y: 1.2, z: 0.9 }, formalCharge: 0, moleculeId: 'mol_dopamine' });
+      graph.addAtom({ id: 'hcb2', atomicNumber: 1, position: { x: -4.0, y: 1.2, z: -0.9 }, formalCharge: 0, moleculeId: 'mol_dopamine' });
+      graph.addBond({ id: 'b_cbh1', atomA: 'cb', atomB: 'hcb1', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_cbh2', atomA: 'cb', atomB: 'hcb2', order: 1, type: 'SINGLE' });
+
+      const opt = GeometryOptimizationEngine.optimizeGeometry(graph.toMolecule(), 50);
+      return opt.optimizedMolecule;
+    }
+  },
+
+  // 15. ADRENALINE (Epinephrine)
+  {
+    id: 'adrenaline',
+    name: 'Adrenaline',
+    iupacName: '4-[1-Hydroxy-2-(methylamino)ethyl]benzene-1,2-diol',
+    formula: 'C9H13NO3',
+    category: 'Biomolecules',
+    description: 'Hormone and neurotransmitter driving fight-or-flight response, increasing heart rate, vascular tone, and metabolic alertness.',
+    polarizability: 18.1,
+    dipoleMoment: 3.12,
+    enthalpy: -410.5,
+    pointGroup: 'C1',
+    atomCount: 26,
+    bondCount: 26,
+    builder: () => {
+      const graph = new MolecularGraph('mol_adrenaline', 'Adrenaline');
+      // Benzene ring carbons
+      for (let i = 0; i < 6; i++) {
+        const ang = (i * Math.PI) / 3;
+        graph.addAtom({
+          id: `c${i + 1}`,
+          atomicNumber: 6,
+          position: { x: 1.4 * Math.cos(ang), y: 1.4 * Math.sin(ang), z: 0 },
+          formalCharge: 0,
+          moleculeId: 'mol_adrenaline'
+        });
+      }
+      for (let i = 0; i < 6; i++) {
+        const next = (i + 1) % 6;
+        graph.addBond({ id: `b_cc_${i + 1}_${next + 1}`, atomA: `c${i + 1}`, atomB: `c${next + 1}`, order: 1.5, type: 'AROMATIC', aromatic: true });
+      }
+
+      // Catechol 1,2-Diol OH groups
+      graph.addAtom({ id: 'o1', atomicNumber: 8, position: { x: 2.7, y: 0.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_adrenaline' });
+      graph.addAtom({ id: 'h_o1', atomicNumber: 1, position: { x: 3.4, y: -0.4, z: 0 }, formalCharge: 0, moleculeId: 'mol_adrenaline' });
+      graph.addBond({ id: 'b_c1o1', atomA: 'c1', atomB: 'o1', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_o1h', atomA: 'o1', atomB: 'h_o1', order: 1, type: 'SINGLE' });
+
+      graph.addAtom({ id: 'o2', atomicNumber: 8, position: { x: 1.4, y: 2.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_adrenaline' });
+      graph.addAtom({ id: 'h_o2', atomicNumber: 1, position: { x: 2.2, y: 3.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_adrenaline' });
+      graph.addBond({ id: 'b_c2o2', atomA: 'c2', atomB: 'o2', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_o2h', atomA: 'o2', atomB: 'h_o2', order: 1, type: 'SINGLE' });
+
+      // Sidechain: C4-CH(OH)-CH2-NH-CH3
+      graph.addAtom({ id: 'ca', atomicNumber: 6, position: { x: -2.7, y: -0.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_adrenaline' });
+      graph.addAtom({ id: 'oa', atomicNumber: 8, position: { x: -2.7, y: -1.5, z: 0 }, formalCharge: 0, moleculeId: 'mol_adrenaline' });
+      graph.addAtom({ id: 'hoa', atomicNumber: 1, position: { x: -3.5, y: -1.9, z: 0 }, formalCharge: 0, moleculeId: 'mol_adrenaline' });
+      graph.addBond({ id: 'b_caoa', atomA: 'ca', atomB: 'oa', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_oah', atomA: 'oa', atomB: 'hoa', order: 1, type: 'SINGLE' });
+
+      graph.addAtom({ id: 'cb', atomicNumber: 6, position: { x: -4.0, y: 0.6, z: 0 }, formalCharge: 0, moleculeId: 'mol_adrenaline' });
+      graph.addAtom({ id: 'n_sec', atomicNumber: 7, position: { x: -5.3, y: -0.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_adrenaline' });
+      graph.addAtom({ id: 'c_methyl', atomicNumber: 6, position: { x: -6.6, y: 0.5, z: 0 }, formalCharge: 0, moleculeId: 'mol_adrenaline' });
+
+      graph.addBond({ id: 'b_c4ca', atomA: 'c4', atomB: 'ca', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_cacb', atomA: 'ca', atomB: 'cb', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_cbn', atomA: 'cb', atomB: 'n_sec', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_ncm', atomA: 'n_sec', atomB: 'c_methyl', order: 1, type: 'SINGLE' });
+
+      // N-H Hydrogen
+      graph.addAtom({ id: 'hn', atomicNumber: 1, position: { x: -5.3, y: -1.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_adrenaline' });
+      graph.addBond({ id: 'b_nh', atomA: 'n_sec', atomB: 'hn', order: 1, type: 'SINGLE' });
+
+      // N-Methyl Hydrogens
+      for (let j = 1; j <= 3; j++) {
+        const hId = `h_m_${j}`;
+        graph.addAtom({
+          id: hId,
+          atomicNumber: 1,
+          position: { x: -7.2 + (j === 1 ? 0.6 : -0.2), y: 0.5 + (j === 2 ? 0.8 : -0.6), z: j === 3 ? 0.9 : -0.9 },
+          formalCharge: 0,
+          moleculeId: 'mol_adrenaline'
+        });
+        graph.addBond({ id: `b_cm_${hId}`, atomA: 'c_methyl', atomB: hId, order: 1, type: 'SINGLE' });
+      }
+
+      // Ring Hydrogens
+      const rH = [
+        { cId: 'c3', hId: 'h3', pos: { x: -0.7, y: 2.3, z: 0 } },
+        { cId: 'c5', hId: 'h5', pos: { x: -2.3, y: -1.7, z: 0 } },
+        { cId: 'c6', hId: 'h6', pos: { x: 1.2, y: -2.3, z: 0 } }
+      ];
+      rH.forEach((rh) => {
+        graph.addAtom({ id: rh.hId, atomicNumber: 1, position: rh.pos, formalCharge: 0, moleculeId: 'mol_adrenaline' });
+        graph.addBond({ id: `b_${rh.cId}h`, atomA: rh.cId, atomB: rh.hId, order: 1, type: 'SINGLE' });
+      });
+
+      // Chain H's on Ca and Cb
+      graph.addAtom({ id: 'hca', atomicNumber: 1, position: { x: -2.7, y: 0.4, z: 0.9 }, formalCharge: 0, moleculeId: 'mol_adrenaline' });
+      graph.addBond({ id: 'b_cah', atomA: 'ca', atomB: 'hca', order: 1, type: 'SINGLE' });
+
+      graph.addAtom({ id: 'hcb1', atomicNumber: 1, position: { x: -4.0, y: 1.2, z: 0.9 }, formalCharge: 0, moleculeId: 'mol_adrenaline' });
+      graph.addAtom({ id: 'hcb2', atomicNumber: 1, position: { x: -4.0, y: 1.2, z: -0.9 }, formalCharge: 0, moleculeId: 'mol_adrenaline' });
+      graph.addBond({ id: 'b_cbh1', atomA: 'cb', atomB: 'hcb1', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_cbh2', atomA: 'cb', atomB: 'hcb2', order: 1, type: 'SINGLE' });
+
+      const opt = GeometryOptimizationEngine.optimizeGeometry(graph.toMolecule(), 50);
+      return opt.optimizedMolecule;
+    }
+  },
+
+  // 16. ADENINE (DNA / RNA Nucleobase A)
+  {
+    id: 'adenine',
+    name: 'Adenine (A)',
+    iupacName: '9H-Purin-6-amine',
+    formula: 'C5H5N5',
+    category: 'Biomolecules',
+    description: 'Purine nucleobase A constituent of DNA/RNA genetic material and ATP energy transfer currency.',
+    polarizability: 13.8,
+    dipoleMoment: 2.50,
+    enthalpy: 97.2,
+    pointGroup: 'Cs',
+    atomCount: 15,
+    bondCount: 16,
+    builder: () => {
+      const graph = new MolecularGraph('mol_adenine', 'Adenine');
+      // Purine ring system
+      graph.addAtom({ id: 'n1', atomicNumber: 7, position: { x: -1.2, y: 1.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_adenine' });
+      graph.addAtom({ id: 'c2', atomicNumber: 6, position: { x: 0.1, y: 1.5, z: 0 }, formalCharge: 0, moleculeId: 'mol_adenine' });
+      graph.addAtom({ id: 'n3', atomicNumber: 7, position: { x: 1.0, y: 0.5, z: 0 }, formalCharge: 0, moleculeId: 'mol_adenine' });
+      graph.addAtom({ id: 'c4', atomicNumber: 6, position: { x: 0.6, y: -0.8, z: 0 }, formalCharge: 0, moleculeId: 'mol_adenine' });
+      graph.addAtom({ id: 'c5', atomicNumber: 6, position: { x: -0.8, y: -1.0, z: 0 }, formalCharge: 0, moleculeId: 'mol_adenine' });
+      graph.addAtom({ id: 'c6', atomicNumber: 6, position: { x: -1.6, y: 0.1, z: 0 }, formalCharge: 0, moleculeId: 'mol_adenine' });
+
+      // 6-Amino group (-NH2) on C6
+      graph.addAtom({ id: 'n6_amino', atomicNumber: 7, position: { x: -2.9, y: 0.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_adenine' });
+      graph.addAtom({ id: 'hn6a', atomicNumber: 1, position: { x: -3.5, y: 1.0, z: 0 }, formalCharge: 0, moleculeId: 'mol_adenine' });
+      graph.addAtom({ id: 'hn6b', atomicNumber: 1, position: { x: -3.5, y: -0.6, z: 0 }, formalCharge: 0, moleculeId: 'mol_adenine' });
+
+      graph.addBond({ id: 'b_c6n6', atomA: 'c6', atomB: 'n6_amino', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_n6ha', atomA: 'n6_amino', atomB: 'hn6a', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_n6hb', atomA: 'n6_amino', atomB: 'hn6b', order: 1, type: 'SINGLE' });
+
+      // Imidazole ring fusion (N7, C8, N9)
+      graph.addAtom({ id: 'n7', atomicNumber: 7, position: { x: 1.6, y: -1.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_adenine' });
+      graph.addAtom({ id: 'c8', atomicNumber: 6, position: { x: 0.8, y: -2.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_adenine' });
+      graph.addAtom({ id: 'n9', atomicNumber: 7, position: { x: -0.6, y: -2.3, z: 0 }, formalCharge: 0, moleculeId: 'mol_adenine' });
+
+      // Ring bonds
+      graph.addBond({ id: 'b1', atomA: 'n1', atomB: 'c2', order: 2, type: 'DOUBLE', aromatic: true });
+      graph.addBond({ id: 'b2', atomA: 'c2', atomB: 'n3', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b3', atomA: 'n3', atomB: 'c4', order: 2, type: 'DOUBLE', aromatic: true });
+      graph.addBond({ id: 'b4', atomA: 'c4', atomB: 'c5', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b5', atomA: 'c5', atomB: 'c6', order: 2, type: 'DOUBLE', aromatic: true });
+      graph.addBond({ id: 'b6', atomA: 'c6', atomB: 'n1', order: 1, type: 'SINGLE' });
+
+      graph.addBond({ id: 'b7', atomA: 'c4', atomB: 'n7', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b8', atomA: 'n7', atomB: 'c8', order: 2, type: 'DOUBLE', aromatic: true });
+      graph.addBond({ id: 'b9', atomA: 'c8', atomB: 'n9', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b10', atomA: 'n9', atomB: 'c5', order: 1, type: 'SINGLE' });
+
+      // Hydrogens on C2, C8, N9
+      graph.addAtom({ id: 'h2', atomicNumber: 1, position: { x: 0.4, y: 2.5, z: 0 }, formalCharge: 0, moleculeId: 'mol_adenine' });
+      graph.addAtom({ id: 'h8', atomicNumber: 1, position: { x: 1.2, y: -3.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_adenine' });
+      graph.addAtom({ id: 'h9', atomicNumber: 1, position: { x: -1.3, y: -2.9, z: 0 }, formalCharge: 0, moleculeId: 'mol_adenine' });
+
+      graph.addBond({ id: 'b_c2h', atomA: 'c2', atomB: 'h2', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_c8h', atomA: 'c8', atomB: 'h8', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_n9h', atomA: 'n9', atomB: 'h9', order: 1, type: 'SINGLE' });
+
+      const opt = GeometryOptimizationEngine.optimizeGeometry(graph.toMolecule(), 50);
+      return opt.optimizedMolecule;
+    }
+  },
+
+  // 17. THYMINE (DNA Nucleobase T)
+  {
+    id: 'thymine',
+    name: 'Thymine (T)',
+    iupacName: '5-Methylpyrimidine-2,4(1H,3H)-dione',
+    formula: 'C5H6N2O2',
+    category: 'Biomolecules',
+    description: 'Pyrimidine nucleobase T exclusive to DNA genetic code, pairing with Adenine via 2 hydrogen bonds.',
+    polarizability: 12.1,
+    dipoleMoment: 4.10,
+    enthalpy: -342.1,
+    pointGroup: 'Cs',
+    atomCount: 15,
+    bondCount: 15,
+    builder: () => {
+      const graph = new MolecularGraph('mol_thymine', 'Thymine');
+      // Pyrimidine-2,4-dione core
+      graph.addAtom({ id: 'n1', atomicNumber: 7, position: { x: -1.2, y: 0.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_thymine' });
+      graph.addAtom({ id: 'c2', atomicNumber: 6, position: { x: 0, y: 1.4, z: 0 }, formalCharge: 0, moleculeId: 'mol_thymine' });
+      graph.addAtom({ id: 'o2', atomicNumber: 8, position: { x: 0, y: 2.6, z: 0 }, formalCharge: 0, moleculeId: 'mol_thymine' });
+
+      graph.addAtom({ id: 'n3', atomicNumber: 7, position: { x: 1.2, y: 0.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_thymine' });
+      graph.addAtom({ id: 'c4', atomicNumber: 6, position: { x: 1.2, y: -0.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_thymine' });
+      graph.addAtom({ id: 'o4', atomicNumber: 8, position: { x: 2.3, y: -1.4, z: 0 }, formalCharge: 0, moleculeId: 'mol_thymine' });
+
+      graph.addAtom({ id: 'c5', atomicNumber: 6, position: { x: 0, y: -1.4, z: 0 }, formalCharge: 0, moleculeId: 'mol_thymine' });
+      graph.addAtom({ id: 'c6', atomicNumber: 6, position: { x: -1.2, y: -0.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_thymine' });
+
+      // C5 Methyl group (-CH3)
+      graph.addAtom({ id: 'c5_methyl', atomicNumber: 6, position: { x: 0, y: -2.9, z: 0 }, formalCharge: 0, moleculeId: 'mol_thymine' });
+
+      // Core bonds
+      graph.addBond({ id: 'b1', atomA: 'n1', atomB: 'c2', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b2', atomA: 'c2', atomB: 'o2', order: 2, type: 'DOUBLE' });
+      graph.addBond({ id: 'b3', atomA: 'c2', atomB: 'n3', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b4', atomA: 'n3', atomB: 'c4', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b5', atomA: 'c4', atomB: 'o4', order: 2, type: 'DOUBLE' });
+      graph.addBond({ id: 'b6', atomA: 'c4', atomB: 'c5', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b7', atomA: 'c5', atomB: 'c6', order: 2, type: 'DOUBLE' });
+      graph.addBond({ id: 'b8', atomA: 'c6', atomB: 'n1', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b9', atomA: 'c5', atomB: 'c5_methyl', order: 1, type: 'SINGLE' });
+
+      // Hydrogens on N1, N3, C6, and C5-methyl
+      graph.addAtom({ id: 'hn1', atomicNumber: 1, position: { x: -2.1, y: 1.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_thymine' });
+      graph.addAtom({ id: 'hn3', atomicNumber: 1, position: { x: 2.1, y: 1.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_thymine' });
+      graph.addAtom({ id: 'hc6', atomicNumber: 1, position: { x: -2.1, y: -1.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_thymine' });
+
+      graph.addBond({ id: 'b_n1h', atomA: 'n1', atomB: 'hn1', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_n3h', atomA: 'n3', atomB: 'hn3', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_c6h', atomA: 'c6', atomB: 'hc6', order: 1, type: 'SINGLE' });
+
+      for (let j = 1; j <= 3; j++) {
+        const hId = `h_m_${j}`;
+        graph.addAtom({
+          id: hId,
+          atomicNumber: 1,
+          position: { x: (j === 1 ? 0.9 : -0.5), y: -3.5, z: j === 3 ? 0.9 : -0.5 },
+          formalCharge: 0,
+          moleculeId: 'mol_thymine'
+        });
+        graph.addBond({ id: `b_cm_${hId}`, atomA: 'c5_methyl', atomB: hId, order: 1, type: 'SINGLE' });
+      }
+
+      const opt = GeometryOptimizationEngine.optimizeGeometry(graph.toMolecule(), 50);
+      return opt.optimizedMolecule;
+    }
+  },
+
+  // 18. GUANINE (DNA / RNA Nucleobase G)
+  {
+    id: 'guanine',
+    name: 'Guanine (G)',
+    iupacName: '2-Amino-1H-purin-6(9H)-one',
+    formula: 'C5H5N5O',
+    category: 'Biomolecules',
+    description: 'Purine nucleobase G constituent of DNA/RNA genetic code, forming 3 hydrogen bonds with Cytosine.',
+    polarizability: 14.5,
+    dipoleMoment: 6.80,
+    enthalpy: -12.4,
+    pointGroup: 'Cs',
+    atomCount: 16,
+    bondCount: 17,
+    builder: () => {
+      const graph = new MolecularGraph('mol_guanine', 'Guanine');
+      // Purine core
+      graph.addAtom({ id: 'n1', atomicNumber: 7, position: { x: -1.2, y: 1.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_guanine' });
+      graph.addAtom({ id: 'c2', atomicNumber: 6, position: { x: 0.1, y: 1.5, z: 0 }, formalCharge: 0, moleculeId: 'mol_guanine' });
+      graph.addAtom({ id: 'n2_amino', atomicNumber: 7, position: { x: 0.5, y: 2.8, z: 0 }, formalCharge: 0, moleculeId: 'mol_guanine' });
+      graph.addAtom({ id: 'n3', atomicNumber: 7, position: { x: 1.0, y: 0.5, z: 0 }, formalCharge: 0, moleculeId: 'mol_guanine' });
+      graph.addAtom({ id: 'c4', atomicNumber: 6, position: { x: 0.6, y: -0.8, z: 0 }, formalCharge: 0, moleculeId: 'mol_guanine' });
+      graph.addAtom({ id: 'c5', atomicNumber: 6, position: { x: -0.8, y: -1.0, z: 0 }, formalCharge: 0, moleculeId: 'mol_guanine' });
+      graph.addAtom({ id: 'c6', atomicNumber: 6, position: { x: -1.6, y: 0.1, z: 0 }, formalCharge: 0, moleculeId: 'mol_guanine' });
+      graph.addAtom({ id: 'o6', atomicNumber: 8, position: { x: -2.8, y: 0.1, z: 0 }, formalCharge: 0, moleculeId: 'mol_guanine' });
+
+      // Imidazole ring fusion
+      graph.addAtom({ id: 'n7', atomicNumber: 7, position: { x: 1.6, y: -1.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_guanine' });
+      graph.addAtom({ id: 'c8', atomicNumber: 6, position: { x: 0.8, y: -2.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_guanine' });
+      graph.addAtom({ id: 'n9', atomicNumber: 7, position: { x: -0.6, y: -2.3, z: 0 }, formalCharge: 0, moleculeId: 'mol_guanine' });
+
+      // Bonds
+      graph.addBond({ id: 'b1', atomA: 'n1', atomB: 'c2', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b2', atomA: 'c2', atomB: 'n2_amino', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b3', atomA: 'c2', atomB: 'n3', order: 2, type: 'DOUBLE', aromatic: true });
+      graph.addBond({ id: 'b4', atomA: 'n3', atomB: 'c4', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b5', atomA: 'c4', atomB: 'c5', order: 2, type: 'DOUBLE', aromatic: true });
+      graph.addBond({ id: 'b6', atomA: 'c5', atomB: 'c6', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b7', atomA: 'c6', atomB: 'o6', order: 2, type: 'DOUBLE' });
+      graph.addBond({ id: 'b8', atomA: 'c6', atomB: 'n1', order: 1, type: 'SINGLE' });
+
+      graph.addBond({ id: 'b9', atomA: 'c4', atomB: 'n7', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b10', atomA: 'n7', atomB: 'c8', order: 2, type: 'DOUBLE', aromatic: true });
+      graph.addBond({ id: 'b11', atomA: 'c8', atomB: 'n9', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b12', atomA: 'n9', atomB: 'c5', order: 1, type: 'SINGLE' });
+
+      // Hydrogens on N1, N2(a,b), C8, N9
+      graph.addAtom({ id: 'hn1', atomicNumber: 1, position: { x: -1.9, y: 1.9, z: 0 }, formalCharge: 0, moleculeId: 'mol_guanine' });
+      graph.addAtom({ id: 'hn2a', atomicNumber: 1, position: { x: 1.5, y: 3.0, z: 0 }, formalCharge: 0, moleculeId: 'mol_guanine' });
+      graph.addAtom({ id: 'hn2b', atomicNumber: 1, position: { x: -0.1, y: 3.5, z: 0 }, formalCharge: 0, moleculeId: 'mol_guanine' });
+      graph.addAtom({ id: 'h8', atomicNumber: 1, position: { x: 1.2, y: -3.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_guanine' });
+      graph.addAtom({ id: 'h9', atomicNumber: 1, position: { x: -1.3, y: -2.9, z: 0 }, formalCharge: 0, moleculeId: 'mol_guanine' });
+
+      graph.addBond({ id: 'b_n1h', atomA: 'n1', atomB: 'hn1', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_n2ha', atomA: 'n2_amino', atomB: 'hn2a', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_n2hb', atomA: 'n2_amino', atomB: 'hn2b', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_c8h', atomA: 'c8', atomB: 'h8', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_n9h', atomA: 'n9', atomB: 'h9', order: 1, type: 'SINGLE' });
+
+      const opt = GeometryOptimizationEngine.optimizeGeometry(graph.toMolecule(), 50);
+      return opt.optimizedMolecule;
+    }
+  },
+
+  // 19. CYTOSINE (DNA / RNA Nucleobase C)
+  {
+    id: 'cytosine',
+    name: 'Cytosine (C)',
+    iupacName: '4-Aminopyrimidin-2(1H)-one',
+    formula: 'C4H5N3O',
+    category: 'Biomolecules',
+    description: 'Pyrimidine nucleobase C constituent of DNA/RNA genetic code, forming 3 hydrogen bonds with Guanine.',
+    polarizability: 11.2,
+    dipoleMoment: 6.20,
+    enthalpy: -218.4,
+    pointGroup: 'Cs',
+    atomCount: 13,
+    bondCount: 13,
+    builder: () => {
+      const graph = new MolecularGraph('mol_cytosine', 'Cytosine');
+      // Pyrimidin-2-one core
+      graph.addAtom({ id: 'n1', atomicNumber: 7, position: { x: -1.2, y: 0.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_cytosine' });
+      graph.addAtom({ id: 'c2', atomicNumber: 6, position: { x: 0, y: 1.4, z: 0 }, formalCharge: 0, moleculeId: 'mol_cytosine' });
+      graph.addAtom({ id: 'o2', atomicNumber: 8, position: { x: 0, y: 2.6, z: 0 }, formalCharge: 0, moleculeId: 'mol_cytosine' });
+
+      graph.addAtom({ id: 'n3', atomicNumber: 7, position: { x: 1.2, y: 0.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_cytosine' });
+      graph.addAtom({ id: 'c4', atomicNumber: 6, position: { x: 1.2, y: -0.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_cytosine' });
+      graph.addAtom({ id: 'n4_amino', atomicNumber: 7, position: { x: 2.4, y: -1.4, z: 0 }, formalCharge: 0, moleculeId: 'mol_cytosine' });
+
+      graph.addAtom({ id: 'c5', atomicNumber: 6, position: { x: 0, y: -1.4, z: 0 }, formalCharge: 0, moleculeId: 'mol_cytosine' });
+      graph.addAtom({ id: 'c6', atomicNumber: 6, position: { x: -1.2, y: -0.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_cytosine' });
+
+      // Core bonds
+      graph.addBond({ id: 'b1', atomA: 'n1', atomB: 'c2', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b2', atomA: 'c2', atomB: 'o2', order: 2, type: 'DOUBLE' });
+      graph.addBond({ id: 'b3', atomA: 'c2', atomB: 'n3', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b4', atomA: 'n3', atomB: 'c4', order: 2, type: 'DOUBLE', aromatic: true });
+      graph.addBond({ id: 'b5', atomA: 'c4', atomB: 'n4_amino', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b6', atomA: 'c4', atomB: 'c5', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b7', atomA: 'c5', atomB: 'c6', order: 2, type: 'DOUBLE' });
+      graph.addBond({ id: 'b8', atomA: 'c6', atomB: 'n1', order: 1, type: 'SINGLE' });
+
+      // Hydrogens on N1, N4(a,b), C5, C6
+      graph.addAtom({ id: 'hn1', atomicNumber: 1, position: { x: -2.1, y: 1.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_cytosine' });
+      graph.addAtom({ id: 'hn4a', atomicNumber: 1, position: { x: 3.2, y: -0.9, z: 0 }, formalCharge: 0, moleculeId: 'mol_cytosine' });
+      graph.addAtom({ id: 'hn4b', atomicNumber: 1, position: { x: 2.4, y: -2.4, z: 0 }, formalCharge: 0, moleculeId: 'mol_cytosine' });
+      graph.addAtom({ id: 'hc5', atomicNumber: 1, position: { x: 0, y: -2.5, z: 0 }, formalCharge: 0, moleculeId: 'mol_cytosine' });
+      graph.addAtom({ id: 'hc6', atomicNumber: 1, position: { x: -2.1, y: -1.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_cytosine' });
+
+      graph.addBond({ id: 'b_n1h', atomA: 'n1', atomB: 'hn1', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_n4ha', atomA: 'n4_amino', atomB: 'hn4a', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_n4hb', atomA: 'n4_amino', atomB: 'hn4b', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_c5h', atomA: 'c5', atomB: 'hc5', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_c6h', atomA: 'c6', atomB: 'hc6', order: 1, type: 'SINGLE' });
+
+      const opt = GeometryOptimizationEngine.optimizeGeometry(graph.toMolecule(), 50);
+      return opt.optimizedMolecule;
+    }
+  },
+
+  // 20. URACIL (RNA Nucleobase U)
+  {
+    id: 'uracil',
+    name: 'Uracil (U)',
+    iupacName: 'Pyrimidine-2,4(1H,3H)-dione',
+    formula: 'C4H4N2O2',
+    category: 'Biomolecules',
+    description: 'Pyrimidine nucleobase U exclusive to RNA genetic code, replacing Thymine to pair with Adenine.',
+    polarizability: 10.4,
+    dipoleMoment: 4.25,
+    enthalpy: -302.5,
+    pointGroup: 'Cs',
+    atomCount: 12,
+    bondCount: 12,
+    builder: () => {
+      const graph = new MolecularGraph('mol_uracil', 'Uracil');
+      // Pyrimidine-2,4-dione core
+      graph.addAtom({ id: 'n1', atomicNumber: 7, position: { x: -1.2, y: 0.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_uracil' });
+      graph.addAtom({ id: 'c2', atomicNumber: 6, position: { x: 0, y: 1.4, z: 0 }, formalCharge: 0, moleculeId: 'mol_uracil' });
+      graph.addAtom({ id: 'o2', atomicNumber: 8, position: { x: 0, y: 2.6, z: 0 }, formalCharge: 0, moleculeId: 'mol_uracil' });
+
+      graph.addAtom({ id: 'n3', atomicNumber: 7, position: { x: 1.2, y: 0.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_uracil' });
+      graph.addAtom({ id: 'c4', atomicNumber: 6, position: { x: 1.2, y: -0.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_uracil' });
+      graph.addAtom({ id: 'o4', atomicNumber: 8, position: { x: 2.3, y: -1.4, z: 0 }, formalCharge: 0, moleculeId: 'mol_uracil' });
+
+      graph.addAtom({ id: 'c5', atomicNumber: 6, position: { x: 0, y: -1.4, z: 0 }, formalCharge: 0, moleculeId: 'mol_uracil' });
+      graph.addAtom({ id: 'c6', atomicNumber: 6, position: { x: -1.2, y: -0.7, z: 0 }, formalCharge: 0, moleculeId: 'mol_uracil' });
+
+      // Core bonds
+      graph.addBond({ id: 'b1', atomA: 'n1', atomB: 'c2', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b2', atomA: 'c2', atomB: 'o2', order: 2, type: 'DOUBLE' });
+      graph.addBond({ id: 'b3', atomA: 'c2', atomB: 'n3', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b4', atomA: 'n3', atomB: 'c4', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b5', atomA: 'c4', atomB: 'o4', order: 2, type: 'DOUBLE' });
+      graph.addBond({ id: 'b6', atomA: 'c4', atomB: 'c5', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b7', atomA: 'c5', atomB: 'c6', order: 2, type: 'DOUBLE' });
+      graph.addBond({ id: 'b8', atomA: 'c6', atomB: 'n1', order: 1, type: 'SINGLE' });
+
+      // Hydrogens on N1, N3, C5, C6
+      graph.addAtom({ id: 'hn1', atomicNumber: 1, position: { x: -2.1, y: 1.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_uracil' });
+      graph.addAtom({ id: 'hn3', atomicNumber: 1, position: { x: 2.1, y: 1.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_uracil' });
+      graph.addAtom({ id: 'hc5', atomicNumber: 1, position: { x: 0, y: -2.5, z: 0 }, formalCharge: 0, moleculeId: 'mol_uracil' });
+      graph.addAtom({ id: 'hc6', atomicNumber: 1, position: { x: -2.1, y: -1.2, z: 0 }, formalCharge: 0, moleculeId: 'mol_uracil' });
+
+      graph.addBond({ id: 'b_n1h', atomA: 'n1', atomB: 'hn1', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_n3h', atomA: 'n3', atomB: 'hn3', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_c5h', atomA: 'c5', atomB: 'hc5', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_c6h', atomA: 'c6', atomB: 'hc6', order: 1, type: 'SINGLE' });
+
+      const opt = GeometryOptimizationEngine.optimizeGeometry(graph.toMolecule(), 50);
+      return opt.optimizedMolecule;
+    }
+  },
+
+  // 21. GLUCOSE (D-Glucose / Glucopyranose)
+  {
+    id: 'glucose',
+    name: 'D-Glucose',
+    iupacName: '(2R,3S,4R,5R)-2,3,4,5,6-Pentahydroxyhexanal',
+    formula: 'C6H12O6',
+    category: 'Biomolecules',
+    description: 'Essential hexose monosaccharide carbohydrate providing primary cellular energy currency in living organisms.',
+    polarizability: 15.4,
+    dipoleMoment: 3.80,
+    enthalpy: -1271.0,
+    pointGroup: 'C1',
+    atomCount: 24,
+    bondCount: 24,
+    builder: () => {
+      const graph = new MolecularGraph('mol_glucose', 'D-Glucose');
+      // Pyranose 6-membered ring: C1, C2, C3, C4, C5, O5
+      const cPos = [
+        { id: 'c1', pos: { x: 1.4, y: 0.8, z: 0.2 } },
+        { id: 'c2', pos: { x: 0.7, y: -0.5, z: -0.2 } },
+        { id: 'c3', pos: { x: -0.7, y: -0.5, z: 0.2 } },
+        { id: 'c4', pos: { x: -1.4, y: 0.8, z: -0.2 } },
+        { id: 'c5', pos: { x: -0.7, y: 1.9, z: 0.2 } },
+        { id: 'o5', pos: { x: 0.7, y: 1.9, z: -0.2 } }
+      ];
+
+      graph.addAtom({ id: 'c1', atomicNumber: 6, position: cPos[0].pos, formalCharge: 0, moleculeId: 'mol_glucose' });
+      graph.addAtom({ id: 'c2', atomicNumber: 6, position: cPos[1].pos, formalCharge: 0, moleculeId: 'mol_glucose' });
+      graph.addAtom({ id: 'c3', atomicNumber: 6, position: cPos[2].pos, formalCharge: 0, moleculeId: 'mol_glucose' });
+      graph.addAtom({ id: 'c4', atomicNumber: 6, position: cPos[3].pos, formalCharge: 0, moleculeId: 'mol_glucose' });
+      graph.addAtom({ id: 'c5', atomicNumber: 6, position: cPos[4].pos, formalCharge: 0, moleculeId: 'mol_glucose' });
+      graph.addAtom({ id: 'o5', atomicNumber: 8, position: cPos[5].pos, formalCharge: 0, moleculeId: 'mol_glucose' });
+
+      // Ring bonds
+      graph.addBond({ id: 'b_c1c2', atomA: 'c1', atomB: 'c2', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_c2c3', atomA: 'c2', atomB: 'c3', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_c3c4', atomA: 'c3', atomB: 'c4', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_c4c5', atomA: 'c4', atomB: 'c5', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_c5o5', atomA: 'c5', atomB: 'o5', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_o5c1', atomA: 'o5', atomB: 'c1', order: 1, type: 'SINGLE' });
+
+      // C6 hydroxymethyl group (-CH2OH on C5)
+      graph.addAtom({ id: 'c6', atomicNumber: 6, position: { x: -1.4, y: 3.1, z: 0.5 }, formalCharge: 0, moleculeId: 'mol_glucose' });
+      graph.addAtom({ id: 'o6', atomicNumber: 8, position: { x: -2.7, y: 3.1, z: 0.1 }, formalCharge: 0, moleculeId: 'mol_glucose' });
+      graph.addAtom({ id: 'ho6', atomicNumber: 1, position: { x: -3.1, y: 3.9, z: 0.4 }, formalCharge: 0, moleculeId: 'mol_glucose' });
+
+      graph.addBond({ id: 'b_c5c6', atomA: 'c5', atomB: 'c6', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_c6o6', atomA: 'c6', atomB: 'o6', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_o6h', atomA: 'o6', atomB: 'ho6', order: 1, type: 'SINGLE' });
+
+      // C6 Hydrogens
+      graph.addAtom({ id: 'hc6a', atomicNumber: 1, position: { x: -1.4, y: 3.1, z: 1.6 }, formalCharge: 0, moleculeId: 'mol_glucose' });
+      graph.addAtom({ id: 'hc6b', atomicNumber: 1, position: { x: -0.9, y: 3.9, z: 0.1 }, formalCharge: 0, moleculeId: 'mol_glucose' });
+      graph.addBond({ id: 'b_c6ha', atomA: 'c6', atomB: 'hc6a', order: 1, type: 'SINGLE' });
+      graph.addBond({ id: 'b_c6hb', atomA: 'c6', atomB: 'hc6b', order: 1, type: 'SINGLE' });
+
+      // Hydroxyl (-OH) groups on C1, C2, C3, C4
+      const hydroxyls = [
+        { cId: 'c1', oId: 'o1', hId: 'ho1', oPos: { x: 2.7, y: 0.8, z: 0.5 }, hPos: { x: 3.2, y: 0.1, z: 0.2 } },
+        { cId: 'c2', oId: 'o2', hId: 'ho2', oPos: { x: 1.4, y: -1.6, z: -0.5 }, hPos: { x: 1.0, y: -2.3, z: -0.9 } },
+        { cId: 'c3', oId: 'o3', hId: 'ho3', oPos: { x: -1.4, y: -1.6, z: 0.5 }, hPos: { x: -1.0, y: -2.3, z: 0.9 } },
+        { cId: 'c4', oId: 'o4', hId: 'ho4', oPos: { x: -2.7, y: 0.8, z: -0.5 }, hPos: { x: -3.2, y: 1.5, z: -0.2 } }
+      ];
+
+      hydroxyls.forEach((oh) => {
+        graph.addAtom({ id: oh.oId, atomicNumber: 8, position: oh.oPos, formalCharge: 0, moleculeId: 'mol_glucose' });
+        graph.addAtom({ id: oh.hId, atomicNumber: 1, position: oh.hPos, formalCharge: 0, moleculeId: 'mol_glucose' });
+        graph.addBond({ id: `b_${oh.cId}${oh.oId}`, atomA: oh.cId, atomB: oh.oId, order: 1, type: 'SINGLE' });
+        graph.addBond({ id: `b_${oh.oId}h`, atomA: oh.oId, atomB: oh.hId, order: 1, type: 'SINGLE' });
+      });
+
+      // Hydrogens on C1, C2, C3, C4, C5
+      const ringHydrogens = [
+        { cId: 'c1', hId: 'hc1', pos: { x: 1.4, y: 0.8, z: -0.9 } },
+        { cId: 'c2', hId: 'hc2', pos: { x: 0.7, y: -0.5, z: 0.9 } },
+        { cId: 'c3', hId: 'hc3', pos: { x: -0.7, y: -0.5, z: -0.9 } },
+        { cId: 'c4', hId: 'hc4', pos: { x: -1.4, y: 0.8, z: 0.9 } },
+        { cId: 'c5', hId: 'hc5', pos: { x: -0.7, y: 1.9, z: -0.9 } }
+      ];
+
+      ringHydrogens.forEach((rh) => {
+        graph.addAtom({ id: rh.hId, atomicNumber: 1, position: rh.pos, formalCharge: 0, moleculeId: 'mol_glucose' });
+        graph.addBond({ id: `b_${rh.cId}h`, atomA: rh.cId, atomB: rh.hId, order: 1, type: 'SINGLE' });
+      });
+
+      const opt = GeometryOptimizationEngine.optimizeGeometry(graph.toMolecule(), 50);
+      return opt.optimizedMolecule;
+    }
   }
 ];
+

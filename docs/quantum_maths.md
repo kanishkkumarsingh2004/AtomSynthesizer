@@ -314,3 +314,24 @@ $$T_c \approx 144\text{ MeV} \quad (\sim 1.6 \times 10^{12} \text{ Kelvin})$$
 
 ### E. AdS/CFT Quantum Bound for Relativistic Viscosity Ratio ($\eta/s$):
 $$\frac{\eta}{s} \ge \frac{\hbar}{4\pi k_B}$$
+
+---
+
+## 14. Chemical Graph Theory & Preferred IUPAC Name (PIN) Canonicalization
+
+AtomSynthesizer converts chemical graphs $G = (V, E, L_V, L_E)$ into Preferred IUPAC Names (PIN) via topological sorting and Cahn-Ingold-Prelog (CIP) stereochemical algorithms.
+
+### A. Morgan Algorithm & Canonical Graph Invariants:
+Vertex invariants are updated iteratively until equivalence partitioning stabilizes:
+
+$$W_i^{(t+1)} = \sum_{j \in N(i)} W_j^{(t)}$$
+
+### B. 5-Step IUPAC Rule Hierarchy:
+1. **Principal Group Suffix Anchor**: Carboxylic acid > Ester > Amide > Nitrile > Aldehyde > Ketone > Alcohol > Amine > Alkene > Alkyne > Alkane.
+2. **Principal Parent Chain**: Max suffix groups $\to$ Max chain length $\to$ Max unsaturations.
+3. **Lowest Locant Set Rule**: Numbering direction chosen to minimize locant set $A = \{a_1, a_2, \dots\}$.
+4. **Punctuation Rules**: Number-to-Number $\to$ `,` | Number-to-Letter $\to$ `-` | Letter-to-Letter $\to$ Direct word merge.
+5. **3D Cahn-Ingold-Prelog (CIP) Stereodescriptors**:
+   - **Chiral Centers ($R/S$)**: Evaluated via 3D scalar triple product of CIP priority vectors:
+     $$\text{Sign} = \vec{v}_{14} \cdot (\vec{v}_{24} \times \vec{v}_{34}) \implies \begin{cases} > 0 & (R) \text{ (Rectus / Clockwise)} \\ < 0 & (S) \text{ (Sinister / Counter-clockwise)} \end{cases}$$
+   - **Alkene Double Bond ($E/Z$)**: Dihedral angle between high-priority CIP vectors: $\theta \approx 0^\circ \implies (Z)$ (Zusammen) vs $\theta \approx 180^\circ \implies (E)$ (Entgegen).

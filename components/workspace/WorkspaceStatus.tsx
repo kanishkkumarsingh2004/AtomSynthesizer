@@ -8,6 +8,8 @@ import { useUIStore } from '../../stores/uiStore';
 import { ElementRepository } from '../../domain/elements/ElementRepository';
 import { ChemistryEngine } from '../../chemistry/core/ChemistryEngine';
 
+import { SubscriptFormula } from '../common/SubscriptFormula';
+
 export const WorkspaceStatus: React.FC = () => {
   const activeTool = useWorkspaceStore((state) => state.activeTool);
   const activeElementNumber = useWorkspaceStore((state) => state.activeElementNumber);
@@ -57,7 +59,7 @@ export const WorkspaceStatus: React.FC = () => {
         {formula && (
           <div>
             <span className="text-slate-500">Formula:</span>{' '}
-            <span className="font-bold text-slate-200">{formula}</span>
+            <SubscriptFormula formula={formula} className="font-bold text-slate-200" />
           </div>
         )}
 

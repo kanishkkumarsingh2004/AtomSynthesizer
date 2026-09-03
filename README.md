@@ -21,9 +21,11 @@
 
 ### 3. 🛍️ Preset Molecule Marketplace & 3D Library
 - **Pre-built 3D Structures**: Instant 1-click loading of benchmark molecules into the 3D workstation:
-  - **Neopentane ($\text{C}_5\text{H}_{12}$ / 2,2-Dimethylpropane)**: Quaternary tetrahedral alkane ($T_d$ symmetry).
-  - **Isobutane ($\text{C}_4\text{H}_{10}$ / 2-Methylpropane)**: Branched alkane ($C_{3v}$ symmetry).
-  - **Methane ($\text{CH}_4$)**, **Propane ($\text{C}_3\text{H}_8$)**, **Water ($\text{H}_2\text{O}$)**, **Carbon Dioxide ($\text{CO}_2$)**, **Benzene ($\text{C}_6\text{H}_6$)**, **Ethanol ($\text{C}_2\text{H}_5\text{OH}$)**, **Acetone ($\text{C}_3\text{H}_6\text{O}$)**.
+  - **TNT ($\text{C}_7\text{H}_5\text{N}_3\text{O}_6$ / 2,4,6-Trinitrotoluene)**: Nitroaromatic explosive compound ($C_1$ symmetry).
+  - **Dopamine ($\text{C}_8\text{H}_{11}\text{NO}_2$)**: Catecholamine neurotransmitter governing motivation and reward.
+  - **Adrenaline ($\text{C}_9\text{H}_{13}\text{NO}_3$ / Epinephrine)**: Fight-or-flight hormone and neurotransmitter.
+  - **DNA & RNA Nucleobases (A, T, G, C, U)**: **Adenine (A)**, **Thymine (T)**, **Guanine (G)**, **Cytosine (C)**, and **Uracil (U)**.
+  - **Neopentane ($\text{C}_5\text{H}_{12}$)**, **Isobutane ($\text{C}_4\text{H}_{10}$)**, **Methane ($\text{CH}_4$)**, **Benzene ($\text{C}_6\text{H}_6$)**, **Caffeine ($\text{C}_8\text{H}_{10}\text{N}_4\text{O}_2$)**, **Water ($\text{H}_2\text{O}$)**, **Carbon Dioxide ($\text{CO}_2$)**.
 
 ### 4. 🔗 Octet Rule & Electronegativity Auto-Bonding Engine
 - **Physical Covalent Distance Cutoff ($1.25 \times r_{\text{single}}$)**: Max bond distance threshold set to $1.25 \times (r_A + r_B)$, preventing spurious cross-bonds between separated 1,3-atoms.

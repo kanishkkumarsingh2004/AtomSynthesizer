@@ -65,6 +65,105 @@ const COMMON_NAMES: Record<string, string> = {
 
 export class NomenclatureEngine {
   /**
+   * Calculates Morgan Canonical Graph Invariants W_i^(t+1) = sum_(j in N(i)) W_j^(t)
+   */
+  public static calculateMorganInvariants(graph: MolecularGraph): Map<string, number> {
+    const atoms = graph.getAllAtoms();
+    let invariants = new Map<string, number>();
+
+    // Initial invariant: atomic number * 10 + valence degree
+    for (const a of atoms) {
+      const degree = graph.getNeighbors(a.id).length;
+      invariants.set(a.id, a.atomicNumber * 10 + degree);
+    }
+
+    // Iterate 4 rounds until vertex equivalences stabilize
+    for (let iter = 0; iter < 4; iter++) {
+      const nextInvariants = new Map<string, number>();
+      for (const a of atoms) {
+        const neighbors = graph.getNeighbors(a.id);
+        const sumNeighbors = neighbors.reduce((acc, n) => acc + (invariants.get(n.id) || 0), 0);
+        nextInvariants.set(a.id, (invariants.get(a.id) || 0) * 3 + sumNeighbors);
+      }
+      invariants = nextInvariants;
+    }
+
+    return invariants;
+  }
+
+  /**
+   * Calculates 3D Cahn-Ingold-Prelog (CIP) R/S Chiral Centers and E/Z Double Bond Descriptors
+   */
+  public static calculateStereodescriptors(graph: MolecularGraph): string[] {
+    const descriptors: string[] = [];
+    const carbons = graph.getAllAtoms().filter((a) => a.atomicNumber === 6);
+
+    // 1. Chiral Centers (R/S) via 3D Scalar Triple Product: Sign = v12 · (v23 × v34)
+    for (const c of carbons) {
+      const neighbors = graph.getNeighbors(c.id);
+      if (neighbors.length !== 4) continue;
+
+      // Assign CIP priority 1..4 based on atomic weight and Morgan invariant
+      const morgan = this.calculateMorganInvariants(graph);
+      const sortedNeighbors = [...neighbors].sort((a, b) => {
+        if (b.atomicNumber !== a.atomicNumber) return b.atomicNumber - a.atomicNumber;
+        return (morgan.get(b.id) || 0) - (morgan.get(a.id) || 0);
+      });
+
+      // Verify all 4 neighbors have unique CIP priorities
+      const n1 = sortedNeighbors[0];
+      const n2 = sortedNeighbors[1];
+      const n3 = sortedNeighbors[2];
+      const n4 = sortedNeighbors[3];
+
+      const v1 = { x: n1.position.x - c.position.x, y: n1.position.y - c.position.y, z: n1.position.z - c.position.z };
+      const v2 = { x: n2.position.x - c.position.x, y: n2.position.y - c.position.y, z: n2.position.z - c.position.z };
+      const v3 = { x: n3.position.x - c.position.x, y: n3.position.y - c.position.y, z: n3.position.z - c.position.z };
+      const v4 = { x: n4.position.x - c.position.x, y: n4.position.y - c.position.y, z: n4.position.z - c.position.z };
+
+      // Relativize vectors to v4 axis: v_i4 = v_i - v_4
+      const v14 = { x: v1.x - v4.x, y: v1.y - v4.y, z: v1.z - v4.z };
+      const v24 = { x: v2.x - v4.x, y: v2.y - v4.y, z: v2.z - v4.z };
+      const v34 = { x: v3.x - v4.x, y: v3.y - v4.y, z: v3.z - v4.z };
+
+      // Cross product v24 × v34
+      const crossX = v24.y * v34.z - v24.z * v34.y;
+      const crossY = v24.z * v34.x - v24.x * v34.z;
+      const crossZ = v24.x * v34.y - v24.y * v34.x;
+
+      // Scalar triple product dot = v14 · (v24 × v34)
+      const tripleProduct = v14.x * crossX + v14.y * crossY + v14.z * crossZ;
+
+      if (Math.abs(tripleProduct) > 0.01) {
+        descriptors.push(tripleProduct > 0 ? '(R)' : '(S)');
+      }
+    }
+
+    // 2. Double Bond E/Z Geometry (Zusammen vs Entgegen)
+    for (const bond of graph.getAllBonds()) {
+      if (bond.order !== 2) continue;
+      const aA = graph.getAtom(bond.atomA);
+      const aB = graph.getAtom(bond.atomB);
+      if (!aA || !aB || aA.atomicNumber !== 6 || aB.atomicNumber !== 6) continue;
+
+      const nA = graph.getNeighbors(aA.id).filter((n) => n.id !== aB.id);
+      const nB = graph.getNeighbors(aB.id).filter((n) => n.id !== aA.id);
+      if (nA.length < 1 || nB.length < 1) continue;
+
+      const topA = nA.sort((x, y) => y.atomicNumber - x.atomicNumber)[0];
+      const topB = nB.sort((x, y) => y.atomicNumber - x.atomicNumber)[0];
+
+      const vA = { x: topA.position.x - aA.position.x, y: topA.position.y - aA.position.y };
+      const vB = { x: topB.position.x - aB.position.x, y: topB.position.y - aB.position.y };
+
+      const dot = vA.x * vB.x + vA.y * vB.y;
+      descriptors.push(dot > 0 ? '(Z)' : '(E)');
+    }
+
+    return descriptors;
+  }
+
+  /**
    * Generate a molecular formula key for common name lookup.
    * Elements are sorted alphabetically: C first, H second, then others alphabetically.
    */
@@ -140,7 +239,6 @@ export class NomenclatureEngine {
       const neighbors = graph.getNeighbors(c.id);
       const oxyNeighbors = neighbors.filter((n) => n.atomicNumber === 8);
       if (oxyNeighbors.length < 2) return false;
-      // Check one O has H (hydroxyl) and one doesn't (carbonyl)
       const hasHydroxylO = oxyNeighbors.some((o) => {
         const oNeighbors = graph.getNeighbors(o.id);
         return oNeighbors.some((n) => n.atomicNumber === 1);
@@ -230,6 +328,12 @@ export class NomenclatureEngine {
 
     if (subPrefixes.length > 0) {
       mainName = `${subPrefixes.join('-')}${mainName}`;
+    }
+
+    // Calculate CIP Stereochemistry Descriptors (R/S and E/Z)
+    const stereo = this.calculateStereodescriptors(graph);
+    if (stereo.length > 0) {
+      mainName = `${stereo.join('')}-${mainName}`;
     }
 
     // Capitalize first letter

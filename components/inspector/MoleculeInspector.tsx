@@ -4,7 +4,10 @@ import React from 'react';
 import { useMoleculeStore } from '../../stores/moleculeStore';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { ChemistryEngine } from '../../chemistry/core/ChemistryEngine';
+import { ValidationIssue } from '../../domain/validation/ValidationResult';
 import { Activity, ShieldAlert, CheckCircle2, AlertTriangle, Thermometer, Compass, Zap, Waves } from 'lucide-react';
+
+import { SubscriptFormula } from '../common/SubscriptFormula';
 
 export const MoleculeInspector: React.FC = () => {
   const molecule = useMoleculeStore((state) => state.molecule);
@@ -45,9 +48,7 @@ export const MoleculeInspector: React.FC = () => {
       <div className="rounded-lg border border-slate-800 bg-slate-900/90 p-2.5 shadow space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-[10px] uppercase font-bold text-slate-400">Chemical Formula</span>
-          <span className="text-sm font-extrabold text-blue-400 font-mono">
-            {analysis.formula || 'Empty'}
-          </span>
+          <SubscriptFormula formula={analysis.formula} className="text-sm font-extrabold text-blue-400 font-mono" />
         </div>
 
         <div className="flex items-center justify-between border-t border-slate-800/80 pt-1.5">
@@ -145,43 +146,83 @@ export const MoleculeInspector: React.FC = () => {
           </p>
         </div>
 
-        {/* Enthalpy, Entropy & Gibbs Values */}
-        <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono pt-1 border-t border-slate-800/80">
-          <div>
-            <span className="text-slate-500">Enthalpy (ΔH°):</span>{' '}
-            <span className={analysis.thermodynamics.isExothermic ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
-              {analysis.thermodynamics.enthalpyKjPerMol} kJ/mol
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-500">Entropy (S°):</span>{' '}
-            <span className="text-slate-200 font-bold">{analysis.thermodynamics.entropyJPerMolK} J/mol·K</span>
-          </div>
-          <div>
-            <span className="text-slate-500">Gibbs (ΔG°):</span>{' '}
-            <span className={analysis.thermodynamics.isSpontaneous ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
-              {analysis.thermodynamics.gibbsFreeEnergyKjPerMol} kJ/mol
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-500">Heat Cap (Cp):</span>{' '}
-            <span className="text-cyan-300 font-bold">{analysis.thermodynamics.heatCapacityCp} J/mol·K</span>
-          </div>
-          <div>
-            <span className="text-slate-500">Internal Energy (U):</span>{' '}
-            <span className="text-purple-300 font-bold">{analysis.thermodynamics.internalEnergyU} kJ/mol</span>
-          </div>
-          <div>
-            <span className="text-slate-500">Partition Func (Q):</span>{' '}
-            <span className="text-amber-300 font-bold">{analysis.thermodynamics.partitionFunctionQ}</span>
-          </div>
-          <div>
-            <span className="text-slate-500">Rotational B:</span>{' '}
-            <span className="text-indigo-300 font-bold">{analysis.thermodynamics.rotationalConstantB} cm⁻¹</span>
-          </div>
-          <div>
-            <span className="text-slate-500">Keq:</span>{' '}
-            <span className="text-slate-200">{analysis.thermodynamics.equilibriumConstantKeq}</span>
+        {/* Thermodynamic & Statistical Parameters Table */}
+        <div className="pt-1.5 border-t border-slate-800/80">
+          <div className="overflow-x-auto rounded border border-slate-800/90 bg-slate-950/90">
+            <table className="w-full text-left text-[10px] font-sans border-collapse">
+              <thead>
+                <tr className="border-b border-slate-800 bg-slate-900/80 text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                  <th className="py-1.5 px-2">Property Parameter</th>
+                  <th className="py-1.5 px-2">Value & Scientific Explanation</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 font-mono text-slate-300">
+                <tr className="hover:bg-slate-900/40">
+                  <td className="py-1 px-2 font-semibold text-slate-400">Enthalpy (ΔH°)</td>
+                  <td className="py-1 px-2">
+                    <span className={analysis.thermodynamics.isExothermic ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
+                      {analysis.thermodynamics.enthalpyKjPerMol} kJ/mol
+                    </span>
+                    <span className="text-[9px] text-slate-500 font-sans ml-1.5">
+                      ({analysis.thermodynamics.isExothermic ? 'Exothermic: Heat released' : 'Endothermic: Heat absorbed'})
+                    </span>
+                  </td>
+                </tr>
+                <tr className="hover:bg-slate-900/40">
+                  <td className="py-1 px-2 font-semibold text-slate-400">Entropy (S°)</td>
+                  <td className="py-1 px-2">
+                    <span className="text-slate-200 font-bold">{analysis.thermodynamics.entropyJPerMolK} J/mol·K</span>
+                    <span className="text-[9px] text-slate-500 font-sans ml-1.5">(Microstate density)</span>
+                  </td>
+                </tr>
+                <tr className="hover:bg-slate-900/40">
+                  <td className="py-1 px-2 font-semibold text-slate-400">Gibbs (ΔG°)</td>
+                  <td className="py-1 px-2">
+                    <span className={analysis.thermodynamics.isSpontaneous ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                      {analysis.thermodynamics.gibbsFreeEnergyKjPerMol} kJ/mol
+                    </span>
+                    <span className="text-[9px] text-slate-500 font-sans ml-1.5">
+                      ({analysis.thermodynamics.isSpontaneous ? 'Spontaneous process' : 'Non-spontaneous'})
+                    </span>
+                  </td>
+                </tr>
+                <tr className="hover:bg-slate-900/40">
+                  <td className="py-1 px-2 font-semibold text-slate-400">Heat Cap (Cp)</td>
+                  <td className="py-1 px-2">
+                    <span className="text-cyan-300 font-bold">{analysis.thermodynamics.heatCapacityCp} J/mol·K</span>
+                    <span className="text-[9px] text-slate-500 font-sans ml-1.5">(Thermal capacity)</span>
+                  </td>
+                </tr>
+                <tr className="hover:bg-slate-900/40">
+                  <td className="py-1 px-2 font-semibold text-slate-400">Internal Energy (U)</td>
+                  <td className="py-1 px-2">
+                    <span className="text-purple-300 font-bold">{analysis.thermodynamics.internalEnergyU} kJ/mol</span>
+                    <span className="text-[9px] text-slate-500 font-sans ml-1.5">(Trans + Rot + Vib energy)</span>
+                  </td>
+                </tr>
+                <tr className="hover:bg-slate-900/40">
+                  <td className="py-1 px-2 font-semibold text-slate-400">Partition Func (Q)</td>
+                  <td className="py-1 px-2">
+                    <span className="text-amber-300 font-bold">{analysis.thermodynamics.partitionFunctionQ}</span>
+                    <span className="text-[9px] text-slate-500 font-sans ml-1.5">(Accessible microstates)</span>
+                  </td>
+                </tr>
+                <tr className="hover:bg-slate-900/40">
+                  <td className="py-1 px-2 font-semibold text-slate-400">Rotational B</td>
+                  <td className="py-1 px-2">
+                    <span className="text-indigo-300 font-bold">{analysis.thermodynamics.rotationalConstantB} cm⁻¹</span>
+                    <span className="text-[9px] text-slate-500 font-sans ml-1.5">(Rigid rotor constant)</span>
+                  </td>
+                </tr>
+                <tr className="hover:bg-slate-900/40">
+                  <td className="py-1 px-2 font-semibold text-slate-400">Equilibrium (Keq)</td>
+                  <td className="py-1 px-2">
+                    <span className="text-slate-200 font-bold">{analysis.thermodynamics.equilibriumConstantKeq}</span>
+                    <span className="text-[9px] text-slate-500 font-sans ml-1.5">([Products]/[Reactants])</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -192,6 +233,37 @@ export const MoleculeInspector: React.FC = () => {
           </div>
           <p className="font-semibold text-amber-300">{analysis.kinetics.description}</p>
           <p className="text-slate-400 text-[9px]">{analysis.thermodynamics.summary}</p>
+        </div>
+
+        {/* Quantum Chromodynamics (QCD) & Quark-Gluon Plasma (QGP) Engine */}
+        <div className="rounded bg-slate-950/90 p-2 text-[10px] font-mono border border-slate-800/80 space-y-1.5 shadow">
+          <div className="flex items-center justify-between text-[10px] font-bold text-rose-400 border-b border-slate-800 pb-1 uppercase tracking-wider">
+            <span>Quantum Chromodynamics (QCD)</span>
+            <span className="text-slate-400 font-mono text-[9px]">{analysis.qcd.totalQuarksCount} Quarks</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-1.5 text-[9.5px]">
+            <div>
+              <span className="text-slate-500">Up Quarks (u):</span>{' '}
+              <span className="text-amber-300 font-bold">{analysis.qcd.upQuarksCount}</span>
+            </div>
+            <div>
+              <span className="text-slate-500">Down Quarks (d):</span>{' '}
+              <span className="text-sky-300 font-bold">{analysis.qcd.downQuarksCount}</span>
+            </div>
+            <div>
+              <span className="text-slate-500">Trace Anomaly (Δ):</span>{' '}
+              <span className="text-purple-300 font-bold">{analysis.qcd.traceAnomalyDelta}</span>
+            </div>
+            <div>
+              <span className="text-slate-500">Viscosity (η/s):</span>{' '}
+              <span className="text-emerald-300 font-bold">≥ {analysis.qcd.etaToRatioBound}</span>
+            </div>
+          </div>
+
+          <p className="text-[9px] text-slate-400 border-t border-slate-900 pt-1 font-sans">
+            {analysis.qcd.summary}
+          </p>
         </div>
       </div>
 
@@ -306,7 +378,7 @@ export const MoleculeInspector: React.FC = () => {
           <p className="text-[10px] text-slate-400 italic">No structure warnings or issues.</p>
         ) : (
           <div className="space-y-1 max-h-32 overflow-y-auto">
-            {validation.issues.map((iss, idx) => (
+            {validation.issues.map((iss: ValidationIssue, idx: number) => (
               <div
                 key={idx}
                 className={`rounded p-1.5 text-[10px] flex items-start gap-1.5 border ${

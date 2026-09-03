@@ -7,6 +7,7 @@ import { QuantumEngine, QuantumAnalysisResult } from './QuantumEngine';
 import { ThermodynamicsEngine, ThermodynamicsResult } from './ThermodynamicsEngine';
 import { ReactionLogicEngine, ReactionAnalysis } from './ReactionLogicEngine';
 import { ReactionSimulationEngine, ThermalVibrationAnalysis } from './ReactionSimulationEngine';
+import { QcdEngine, QcdThermodynamicsResult } from './QcdEngine';
 import { ElementRepository } from '../../domain/elements/ElementRepository';
 import { ValidationResult, ValidationIssue } from '../../domain/validation/ValidationResult';
 
@@ -23,6 +24,7 @@ export interface MolecularAnalysis {
   thermodynamics: ThermodynamicsResult;
   kinetics: ReactionAnalysis;
   vibrationalThermal: ThermalVibrationAnalysis;
+  qcd: QcdThermodynamicsResult;
 }
 
 export class ChemistryEngine {
@@ -83,6 +85,7 @@ export class ChemistryEngine {
     const thermodynamics = ThermodynamicsEngine.analyzeThermodynamics(graph, temperatureK);
     const kinetics = ReactionLogicEngine.analyzeReactionKinetics(graph, temperatureK);
     const vibrationalThermal = ReactionSimulationEngine.analyzeVibrationalThermalStability(graph, temperatureK);
+    const qcd = QcdEngine.analyzeQcdThermodynamics(graph, temperatureK);
 
     return {
       formula: FormulaEngine.generateFormula(graph),
@@ -96,7 +99,8 @@ export class ChemistryEngine {
       quantum,
       thermodynamics,
       kinetics,
-      vibrationalThermal
+      vibrationalThermal,
+      qcd
     };
   }
 }
