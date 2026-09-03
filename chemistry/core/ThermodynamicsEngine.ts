@@ -2,17 +2,18 @@ import { MolecularGraph } from '../../domain/molecular/MolecularGraph';
 import { ElementRepository } from '../../domain/elements/ElementRepository';
 
 export interface ThermodynamicsResult {
-  enthalpyKjPerMol: number;       // Standard Enthalpy of Formation ΔH°f in kJ/mol
-  entropyJPerMolK: number;        // Standard Molar Entropy S° in J/(mol·K)
-  gibbsFreeEnergyKjPerMol: number;// Standard Gibbs Free Energy ΔG° in kJ/mol
-  heatCapacityCp: number;         // Molar Heat Capacity Cp in J/(mol·K)
-  internalEnergyU: number;        // Internal Energy U in kJ/mol
-  partitionFunctionQ: string;     // Canonical Partition Function Q = q_trans * q_rot * q_vib * q_elec
-  rotationalConstantB: number;    // Rotational Constant B in cm⁻¹
-  temperatureK: number;           // Temperature T in K
-  isSpontaneous: boolean;         // ΔG° < 0
-  isExothermic: boolean;          // ΔH° < 0
-  equilibriumConstantKeq: number; // Keq = exp(-ΔG / RT)
+  enthalpyKjPerMol: number;           // Standard Enthalpy of Formation ΔH°f in kJ/mol
+  combustionEnthalpyKjPerMol: number; // Standard Enthalpy of Combustion ΔH°comb in kJ/mol
+  entropyJPerMolK: number;            // Standard Molar Entropy S° in J/(mol·K)
+  gibbsFreeEnergyKjPerMol: number;    // Standard Gibbs Free Energy ΔG° in kJ/mol
+  heatCapacityCp: number;             // Molar Heat Capacity Cp in J/(mol·K)
+  internalEnergyU: number;            // Internal Energy U in kJ/mol
+  partitionFunctionQ: string;         // Canonical Partition Function Q = q_trans * q_rot * q_vib * q_elec
+  rotationalConstantB: number;        // Rotational Constant B in cm⁻¹
+  temperatureK: number;               // Temperature T in K
+  isSpontaneous: boolean;             // ΔG° < 0
+  isExothermic: boolean;              // ΔH° < 0
+  equilibriumConstantKeq: number;     // Keq = exp(-ΔG / RT)
   dataSource: 'Pure First-Principles Quantum & Statistical Model';
   summary: string;
 }
@@ -220,8 +221,26 @@ export class ThermodynamicsEngine {
       summary += ` — Endothermic (ΔH° = +${deltaH} kJ/mol)`;
     }
 
+    // Calculate Stoichiometric Combustion Enthalpy ΔH°comb via Hess's Law:
+    // CxHyOz + (x + y/4 - z/2) O2 -> x CO2 + y/2 H2O
+    let cCount = 0, hCount = 0, oCount = 0;
+    for (const atom of graph.getAllAtoms()) {
+      if (atom.atomicNumber === 6) cCount++;
+      else if (atom.atomicNumber === 1) hCount++;
+      else if (atom.atomicNumber === 8) oCount++;
+    }
+
+    let deltaHcomb = 0;
+    if (cCount > 0) {
+      // ΔH°f(CO2) = -393.5 kJ/mol, ΔH°f(H2O, l) = -285.8 kJ/mol
+      const co2Term = cCount * -393.5;
+      const h2oTerm = (hCount / 2.0) * -285.8;
+      deltaHcomb = Math.round((co2Term + h2oTerm - deltaH) * 10) / 10;
+    }
+
     return {
       enthalpyKjPerMol: deltaH,
+      combustionEnthalpyKjPerMol: deltaHcomb,
       entropyJPerMolK: S,
       gibbsFreeEnergyKjPerMol: deltaG,
       heatCapacityCp: Cp,

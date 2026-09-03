@@ -158,9 +158,9 @@ export const MoleculeInspector: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-mono text-slate-300">
                 <tr className="hover:bg-slate-900/40">
-                  <td className="py-1 px-2 font-semibold text-slate-400">Enthalpy (ΔH°)</td>
+                  <td className="py-1 px-2 font-semibold text-slate-400">Formation (ΔH°f)</td>
                   <td className="py-1 px-2">
-                    <span className={analysis.thermodynamics.isExothermic ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
+                    <span className={analysis.thermodynamics.isExothermic ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
                       {analysis.thermodynamics.enthalpyKjPerMol} kJ/mol
                     </span>
                     <span className="text-[9px] text-slate-500 font-sans ml-1.5">
@@ -168,6 +168,19 @@ export const MoleculeInspector: React.FC = () => {
                     </span>
                   </td>
                 </tr>
+                {analysis.thermodynamics.combustionEnthalpyKjPerMol !== 0 && (
+                  <tr className="hover:bg-slate-900/40">
+                    <td className="py-1 px-2 font-semibold text-slate-400">Combustion (ΔH°comb)</td>
+                    <td className="py-1 px-2">
+                      <span className="text-amber-400 font-bold">
+                        {analysis.thermodynamics.combustionEnthalpyKjPerMol} kJ/mol
+                      </span>
+                      <span className="text-[9px] text-slate-500 font-sans ml-1.5">
+                        (Respiration / Heat of reaction)
+                      </span>
+                    </td>
+                  </tr>
+                )}
                 <tr className="hover:bg-slate-900/40">
                   <td className="py-1 px-2 font-semibold text-slate-400">Entropy (S°)</td>
                   <td className="py-1 px-2">
