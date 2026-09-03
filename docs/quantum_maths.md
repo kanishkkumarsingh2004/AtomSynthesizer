@@ -335,3 +335,32 @@ $$W_i^{(t+1)} = \sum_{j \in N(i)} W_j^{(t)}$$
    - **Chiral Centers ($R/S$)**: Evaluated via 3D scalar triple product of CIP priority vectors:
      $$\text{Sign} = \vec{v}_{14} \cdot (\vec{v}_{24} \times \vec{v}_{34}) \implies \begin{cases} > 0 & (R) \text{ (Rectus / Clockwise)} \\ < 0 & (S) \text{ (Sinister / Counter-clockwise)} \end{cases}$$
    - **Alkene Double Bond ($E/Z$)**: Dihedral angle between high-priority CIP vectors: $\theta \approx 0^\circ \implies (Z)$ (Zusammen) vs $\theta \approx 180^\circ \implies (E)$ (Entgegen).
+
+---
+
+## 15. Born-Oppenheimer PES Energy Minimization & Force Field Geometry Extraction
+
+Equilibrium 3D molecular geometries are calculated by finding local minima on the Born-Oppenheimer Potential Energy Surface (PES) where atomic forces vanish ($\mathbf{g} = \mathbf{0}$).
+
+### A. Atomic Forces & Newton-Raphson Minimization Step:
+Forces are the negative gradient of total potential energy:
+
+$$\mathbf{F}_A = -\nabla_A E = -\left(\frac{\partial E}{\partial x_A}, \frac{\partial E}{\partial y_A}, \frac{\partial E}{\partial z_A}\right)^T$$
+
+Newton-Raphson update step using the $3M \times 3M$ Hessian matrix $\mathbf{H}$ ($H_{ij} = \frac{\partial^2 E}{\partial R_i \partial R_j}$):
+
+$$\Delta \mathbf{R} = -\mathbf{H}^{-1} \mathbf{g}$$
+
+### B. 3D Vector Calculus Geometry Extraction:
+- **3D Bond Length ($d$)**:
+  $$d = \|\mathbf{v}_{AB}\| = \sqrt{(x_B - x_A)^2 + (y_B - y_A)^2 + (z_B - z_A)^2}$$
+
+- **3D Bond Angle ($\theta$)**:
+  $$\mathbf{u}_{BA} = \frac{\mathbf{R}_A - \mathbf{R}_B}{\|\mathbf{R}_A - \mathbf{R}_B\|}, \quad \mathbf{u}_{BC} = \frac{\mathbf{R}_C - \mathbf{R}_B}{\|\mathbf{R}_C - \mathbf{R}_B\|}$$
+  $$\theta = \arccos(\mathbf{u}_{BA} \cdot \mathbf{u}_{BC}) = \arccos\left( \frac{\mathbf{v}_{BA} \cdot \mathbf{v}_{BC}}{\|\mathbf{v}_{BA}\| \|\mathbf{v}_{BC}\|} \right)$$
+
+- **3D Dihedral Torsion Angle ($\phi$)**:
+  $$\phi = \text{atan2}\left( (\mathbf{n}_1 \times \mathbf{n}_2) \cdot \hat{\mathbf{b}}_2, \; \mathbf{n}_1 \cdot \mathbf{n}_2 \right), \quad \mathbf{n}_1 = \mathbf{b}_1 \times \mathbf{b}_2, \; \mathbf{n}_2 = \mathbf{b}_2 \times \mathbf{b}_3$$
+
+### C. Empirical Molecular Mechanics (MM) Potential Energy Equation:
+$$E_{\text{total}} = \sum_{\text{bonds}} K_d (d - d_0)^2 + \sum_{\text{angles}} K_\theta (\theta - \theta_0)^2 + \sum_{\text{dihedrals}} V_n [1 + \cos(n\phi - \gamma)] + \sum_{i < j} 4\varepsilon_{ij} \left[ \left(\frac{\sigma_{ij}}{r_{ij}}\right)^{12} - \left(\frac{\sigma_{ij}}{r_{ij}}\right)^6 \right]$$
