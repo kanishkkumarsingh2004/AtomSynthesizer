@@ -16,6 +16,11 @@ This document presents the complete mathematical, quantum mechanical, and statis
 9. [Macroscopic Statistical Thermodynamic Derivatives ($U, C_p, S^\circ, \Delta G^\circ, K_{\text{eq}}$)](#9-macroscopic-statistical-thermodynamic-derivatives-u-c_p-s^\circ-\delta-g^\circ-k_texteq)
 10. [Arrhenius Reaction Kinetics & Chemical Dissociation](#10-arrhenius-reaction-kinetics--chemical-dissociation)
 11. [Sub-Atomic Nuclear Physics & Electron Trajectories](#11-sub-atomic-nuclear-physics--electron-trajectories)
+12. [Quantum Chromodynamics (QCD) & $SU(3)_c$ Quark Field Mathematics](#12-quantum-chromodynamics-qcd--su3_c-quark-field-mathematics)
+13. [QCD Thermodynamics & Quark-Gluon Plasma (QGP) Equation of State](#13-qcd-thermodynamics--quark-gluon-plasma-qgp-equation-of-state)
+14. [Chemical Graph Theory & Preferred IUPAC Name (PIN) Canonicalization](#14-chemical-graph-theory--preferred-iupac-name-pin-canonicalization)
+15. [Born-Oppenheimer PES Energy Minimization & Force Field Geometry Extraction](#15-born-oppenheimer-pes-energy-minimization--force-field-geometry-extraction)
+16. [Normal Mode Analysis & Mass-Weighted Hessian Diagonalization](#16-normal-mode-analysis--mass-weighted-hessian-diagonalization)
 
 ---
 
@@ -340,6 +345,8 @@ $$W_i^{(t+1)} = \sum_{j \in N(i)} W_j^{(t)}$$
 
 ## 15. Born-Oppenheimer PES Energy Minimization & Force Field Geometry Extraction
 
+---
+
 Equilibrium 3D molecular geometries are calculated by finding local minima on the Born-Oppenheimer Potential Energy Surface (PES) where atomic forces vanish ($\mathbf{g} = \mathbf{0}$).
 
 ### A. Atomic Forces & Newton-Raphson Minimization Step:
@@ -364,3 +371,79 @@ $$\Delta \mathbf{R} = -\mathbf{H}^{-1} \mathbf{g}$$
 
 ### C. Empirical Molecular Mechanics (MM) Potential Energy Equation:
 $$E_{\text{total}} = \sum_{\text{bonds}} K_d (d - d_0)^2 + \sum_{\text{angles}} K_\theta (\theta - \theta_0)^2 + \sum_{\text{dihedrals}} V_n [1 + \cos(n\phi - \gamma)] + \sum_{i < j} 4\varepsilon_{ij} \left[ \left(\frac{\sigma_{ij}}{r_{ij}}\right)^{12} - \left(\frac{\sigma_{ij}}{r_{ij}}\right)^6 \right]$$
+
+---
+
+## 16. Normal Mode Analysis & Mass-Weighted Hessian Diagonalization
+
+To mathematically isolate, visualize, and calculate the exact frequencies and spatial movements of molecular vibrations, we transform the $3M$ Cartesian coordinates of a molecule containing $M$ atoms into a set of decoupled, independent internal motions known as **Normal Modes**.
+
+### A. The Classical Mechanical Foundation:
+A molecule with $M$ atoms has $3M$ total degrees of freedom. To isolate pure internal vibrations, we subtract translation of the entire center of mass (3 degrees) and rotation of the molecule as a rigid body (3 degrees for non-linear molecules, 2 for linear). This leaves exactly:
+
+- $3M - 6$ **Vibrational Degrees of Freedom** (Non-linear molecules)
+- $3M - 5$ **Vibrational Degrees of Freedom** (Linear molecules)
+
+#### Mass-Weighted Coordinates ($q_i$):
+Let $(x_1, y_1, z_1, \dots, z_M)$ be the displacement of each atom from its equilibrium position. Incorporating atomic masses $m_i$:
+
+$$q_i = \sqrt{m_i} x_i$$
+
+In mass-weighted coordinates, the total kinetic energy ($T$) of the vibrating system simplifies to:
+
+$$T = \frac{1}{2} \sum_{i=1}^{3M} \left(\frac{dq_i}{dt}\right)^2 = \frac{1}{2} \sum_{i=1}^{3M} \dot{q}_i^2$$
+
+### B. The Potential Energy Expansion & Mass-Weighted Hessian Matrix:
+Expanding the potential energy surface $V$ as a multi-dimensional Taylor series around stable equilibrium ($q_i = 0$):
+
+$$V(q_1, \dots, q_{3M}) = V_0 + \sum_{i=1}^{3M} \left(\frac{\partial V}{\partial q_i}\right)_0 q_i + \frac{1}{2} \sum_{i=1}^{3M} \sum_{j=1}^{3M} \left(\frac{\partial^2 V}{\partial q_i \partial q_j}\right)_0 q_i q_j + \cdots$$
+
+At a stable minimum:
+1. Baseline reference potential is set to zero: $V_0 = 0$.
+2. Equilibrium forces vanish: $\left(\frac{\partial V}{\partial q_i}\right)_0 = 0$.
+
+Truncating at the quadratic term (Harmonic Approximation):
+
+$$V \approx \frac{1}{2} \sum_{i=1}^{3M} \sum_{j=1}^{3M} F_{ij} q_i q_j$$
+
+where the elements $F_{ij}$ form the **Mass-Weighted Force Constant Matrix (Hessian Matrix)**:
+
+$$F_{ij} = \left(\frac{\partial^2 V}{\partial q_i \partial q_j}\right)_0 = \frac{1}{\sqrt{m_i m_j}} \left(\frac{\partial^2 V}{\partial x_i \partial x_j}\right)_0 = \frac{1}{\sqrt{m_i m_j}} H_{ij}$$
+
+### C. Solving the Secular Determinant (The Eigenvalue Problem):
+Using Lagrange's classical equations of motion, acceleration is governed by:
+
+$$\ddot{q}_i + \sum_{j=1}^{3M} F_{ij} q_j = 0 \quad (i = 1, 2, \dots, 3M)$$
+
+Assuming a coherent harmonic vibrational ansatz where all atoms oscillate in phase at angular frequency $\omega$:
+
+$$q_j(t) = A_j \cos(\omega t + \phi) \implies \ddot{q}_j(t) = -\omega^2 q_j(t)$$
+
+Substituting into the equations of motion yields simultaneous algebraic equations:
+
+$$\sum_{j=1}^{3M} (F_{ij} - \omega^2 \delta_{ij}) A_j = 0$$
+
+For non-trivial amplitudes ($A_j \neq 0$), the determinant must vanish, yielding the **Secular Equation**:
+
+$$\det(\mathbf{F} - \omega^2 \mathbf{I}) = 0$$
+
+$$\begin{vmatrix} F_{1,1}-\omega^2 & F_{1,2} & \cdots & F_{1,3M} \\ F_{2,1} & F_{2,2}-\omega^2 & \cdots & F_{2,3M} \\ \vdots & \vdots & \ddots & \vdots \\ F_{3M,1} & F_{3M,2} & \cdots & F_{3M,3M}-\omega^2 \end{vmatrix} = 0$$
+
+### D. Interpreting Mathematical Outputs:
+Solving the matrix eigenvalue problem produces $3M$ roots for $\omega^2$:
+
+1. **Zero Eigenvalues ($\omega^2 = 0$)**: Exactly 6 roots (5 for linear molecules) equal zero. These correspond to rigid translations and rotations requiring zero restoring force.
+2. **Positive Eigenvalues ($\omega^2 > 0$)**: The remaining $3M-6$ (or $3M-5$) roots correspond to true physical vibrational frequencies. Wavenumber $\tilde{\nu}$ ($\text{cm}^{-1}$) is:
+   $$\tilde{\nu} = \frac{\omega}{2\pi c} = \frac{\sqrt{\omega^2}}{2\pi c}$$
+3. **Atomic Movement Paths (Eigenvectors $\mathbf{A}_k$)**:
+   For each frequency $\omega_k^2$, solving for the eigenvector $\mathbf{A}_k = (A_{1k}, A_{2k}, \dots, A_{3Mk})^T$ yields Normal Mode $Q_k$. The elements define the spatial displacement magnitude and direction for every atom while keeping the molecular center of mass stationary.
+
+### E. Summary Matrix Transformation Flow:
+
+$$\text{Cartesian Coordinates }(x,y,z) \xrightarrow{\text{Quantum Optimization}} \text{Equilibrium Geometry }(\mathbf{R}_0)$$
+$$\downarrow$$
+$$\text{Compute 2nd Derivatives Matrix: } H_{ij} = \frac{\partial^2 V}{\partial x_i \partial x_j}$$
+$$\downarrow$$
+$$\text{Apply Masses: } F_{ij} = \frac{1}{\sqrt{m_i m_j}} H_{ij}$$
+$$\downarrow$$
+$$\text{Diagonalize Matrix }\mathbf{F} \longrightarrow \begin{cases} \mathbf{\text{Eigenvalues }}(\omega^2) \to \text{Vibrational Frequencies} \\ \mathbf{\text{Eigenvectors }}(\mathbf{A}) \to \text{Atomic Movement Vectors} \end{cases}$$
