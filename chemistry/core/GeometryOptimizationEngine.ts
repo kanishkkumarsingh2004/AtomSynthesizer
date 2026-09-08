@@ -61,9 +61,10 @@ export class GeometryOptimizationEngine {
       const elA = ElementRepository.getByAtomicNumber(atomA.atomicNumber);
       const elB = ElementRepository.getByAtomicNumber(atomB.atomicNumber);
 
-      let r0 = (elA?.covalentRadius ?? 0.8) + (elB?.covalentRadius ?? 0.8);
-      if (bond.order === 2) r0 *= 0.88;
-      if (bond.order === 3) r0 *= 0.78;
+      const r1 = (elA?.covalentRadius ?? 0.8) + (elB?.covalentRadius ?? 0.8);
+      // Linus Pauling's logarithmic bond length relationship: R = R1 - 0.18 * ln(BO)
+      const bo = Math.max(1.0, bond.order);
+      const r0 = r1 - 0.18 * Math.log(bo);
 
       const r = distance(atomA.position, atomB.position);
       const kb = 1600; // kJ/(mol * Å^2)
@@ -184,9 +185,10 @@ export class GeometryOptimizationEngine {
 
         const elA = ElementRepository.getByAtomicNumber(atomA.atomicNumber);
         const elB = ElementRepository.getByAtomicNumber(atomB.atomicNumber);
-        let r0 = (elA?.covalentRadius ?? 0.8) + (elB?.covalentRadius ?? 0.8);
-        if (bond.order === 2) r0 *= 0.88;
-        if (bond.order === 3) r0 *= 0.78;
+        const r1 = (elA?.covalentRadius ?? 0.8) + (elB?.covalentRadius ?? 0.8);
+        // Linus Pauling's logarithmic bond length relationship: R = R1 - 0.18 * ln(BO)
+        const bo = Math.max(1.0, bond.order);
+        const r0 = r1 - 0.18 * Math.log(bo);
 
         const r = distance(atomA.position, atomB.position);
 

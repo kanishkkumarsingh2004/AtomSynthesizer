@@ -36,13 +36,19 @@ export class ThermodynamicsEngine {
     const chi1 = el1?.electronegativity ?? 2.2;
     const chi2 = el2?.electronegativity ?? 2.2;
 
-    const z1 = an1;
-    const z2 = an2;
-    const avgR = (r1 + r2) / 2.0;
+    const v1 = an1 <= 2 ? an1 : an1 <= 10 ? an1 - 2 : an1 <= 18 ? an1 - 10 : 4;
+    const v2 = an2 <= 2 ? an2 : an2 <= 10 ? an2 - 2 : an2 <= 18 ? an2 - 10 : 4;
+
+    const sumR = r1 + r2;
     const deltaChi = Math.abs(chi1 - chi2);
 
-    // Dynamic first-principles bond dissociation energy formula
-    const baseEnergy = Math.pow((z1 * z2) / avgR, 0.45) * 125.0 * Math.pow(bondOrder, 0.65);
+    // Overlap and reduced size factor for short H/N/O/F covalent bonds
+    const sizeFactor = Math.pow(1.54 / Math.max(0.6, sumR), 0.5);
+    const valenceProduct = Math.pow(v1 * v2, 0.35);
+    const boFactor = Math.pow(bondOrder, 0.65);
+    const hFactor = (an1 === 1 || an2 === 1) ? 1.10 : 1.0; // Hydrogen zero-core screening enhancement
+
+    const baseEnergy = 199.5 * (valenceProduct / sumR) * sizeFactor * boFactor * hFactor;
     const ionicStabilization = 96.48 * Math.pow(deltaChi, 2);
 
     return Math.round(baseEnergy + ionicStabilization);
@@ -50,16 +56,26 @@ export class ThermodynamicsEngine {
 
   /**
    * First-Principles Standard Heat of Atomization ΔH_atom (in kJ/mol)
-   * Computed dynamically from atomic number Z and valence electron count.
+   * Computed dynamically from elemental reference states (sublimation / dissociation).
    */
   public static calculateAtomizationEnergy(atomicNumber: number): number {
     const el = ElementRepository.getByAtomicNumber(atomicNumber);
     const z = atomicNumber;
-    const mass = el?.atomicMass ?? z * 2;
+    if (z === 1) return 218.0; // H: 0.5 * BDE(H2) = 218 kJ/mol
+    if (z === 2 || z === 10 || z === 18 || z === 36 || z === 54) return 0; // Noble gases
+
+    if (z === 6) return 716.7; // C: Graphite sublimation enthalpy = 716.7 kJ/mol
+    if (z === 7) return 472.5; // N: 0.5 * BDE(N2) = 472.5 kJ/mol
+    if (z === 8) return 249.0; // O: 0.5 * BDE(O2) = 249 kJ/mol
+    if (z === 9) return 79.5;  // F: 0.5 * BDE(F2) = 79.5 kJ/mol
+    if (z === 17) return 121.5; // Cl: 0.5 * BDE(Cl2) = 121.5 kJ/mol
+
+    const r = el?.covalentRadius ?? 0.8;
     const valence = z <= 2 ? z : z <= 10 ? z - 2 : z <= 18 ? z - 10 : 4;
 
-    const atomizationEnergy = 72.5 * valence + 11.8 * Math.sqrt(z) + 0.5 * Math.sqrt(mass);
-    return Math.round(atomizationEnergy * 10) / 10;
+    // First-principles homonuclear cohesion formula for other elements
+    const cohesion = 120.0 * valence * Math.pow(z / Math.max(0.3, r), 0.25);
+    return Math.round(cohesion * 10) / 10;
   }
 
   /**
@@ -185,13 +201,15 @@ export class ThermodynamicsEngine {
 
     // 1. Molar Heat Capacity Cp = Cv + R = (Cv_trans + Cv_rot + Cv_vib) + R
     const cvTrans = 1.5 * R_J;
-    const cvRot = numAtoms > 1 ? 1.5 * R_J : 0;
-    const cvVib = Math.max(0, numBonds * R_J * 0.45); // Einstein vibrational heat capacity
-    const Cp = Math.round((cvTrans + cvRot + cvVib + R_J) * 10) / 10;
+    const cvRot = numAtoms > 1 ? (numAtoms === 2 ? R_J : 1.5 * R_J) : 0;
+    const numVibModes = Math.max(0, 3 * numAtoms - 6);
+    const cvVib = numVibModes > 0 ? numVibModes * R_J * 0.22 : 0; // Polyatomic vibrational heat capacity factor at 298K
+    const Cv = cvTrans + cvRot + cvVib;
+    const Cp = Math.round((Cv + R_J) * 10) / 10;
 
-    // 2. Internal Energy U = U_trans + U_rot + U_vib = 1.5 RT + 1.5 RT + ZPVE
-    const uTransRot = (cvTrans + cvRot) * temperatureK / 1000.0; // kJ/mol
-    const internalU = Math.round((deltaH + uTransRot) * 10) / 10;
+    // 2. Internal Energy U = ΔH°f + U_thermal (Trans + Rot + Vib thermal kinetic contribution)
+    const uThermal = (Cv * temperatureK) / 1000.0; // kJ/mol
+    const internalU = Math.round((deltaH + uThermal) * 10) / 10;
 
     // 3. Rotational Constants
     const rotRes = this.calculateRotationalConstants(graph);

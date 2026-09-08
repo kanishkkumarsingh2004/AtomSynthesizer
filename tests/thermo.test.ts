@@ -112,6 +112,16 @@ function runThermodynamicsAndKineticsTests() {
   assert(quantumIsobutane.polarizabilityAng3 >= 7.5 && quantumIsobutane.polarizabilityAng3 <= 8.5, `Isobutane polarizability matches experimental ~8.0 Å³`);
   console.log('  ✅ Isobutane Polarizability test passed.');
 
+  const thermoIsobutane = ThermodynamicsEngine.analyzeThermodynamics(relaxedIsobutaneGraph, 298.15);
+  console.log(`  Isobutane ΔH°f (Formation Enthalpy): ${thermoIsobutane.enthalpyKjPerMol} kJ/mol (NIST: -134.2 kJ/mol)`);
+  console.log(`  Isobutane ΔH°comb (Combustion Enthalpy): ${thermoIsobutane.combustionEnthalpyKjPerMol} kJ/mol (NIST: -2869.0 kJ/mol)`);
+  console.log(`  Isobutane S° (Standard Entropy): ${thermoIsobutane.entropyJPerMolK} J/(mol·K)`);
+  console.log(`  Isobutane Cp (Molar Heat Capacity): ${thermoIsobutane.heatCapacityCp} J/(mol·K) (NIST: 96.5 J/mol·K)`);
+  console.log(`  Isobutane U (Internal Energy): ${thermoIsobutane.internalEnergyU} kJ/mol`);
+
+  assert(thermoIsobutane.enthalpyKjPerMol < -100 && thermoIsobutane.enthalpyKjPerMol > -180, `Isobutane ΔH°f within physical NIST range (-134.2 kJ/mol)`);
+  assert(thermoIsobutane.combustionEnthalpyKjPerMol < -2700 && thermoIsobutane.combustionEnthalpyKjPerMol > -3100, `Isobutane ΔH°comb matches experimental combustion release (-2869.0 kJ/mol)`);
+
   console.log('\n🎉 ALL THERMODYNAMICS & REACTION KINETICS TESTS PASSED SUCCESSFULLY!');
 }
 
