@@ -22,7 +22,8 @@ import {
   Target,
   ShoppingBag,
   Sun,
-  Moon
+  Moon,
+  TrendingUp
 } from 'lucide-react';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useSelectionStore } from '../../stores/selectionStore';
@@ -137,6 +138,16 @@ export const WorkspaceToolbar: React.FC = () => {
           <span className="hidden md:inline">Periodic Table</span>
         </button>
 
+        {/* Periodic Trends & Metal Activity Series */}
+        <button
+          onClick={() => useUIStore.getState().togglePeriodicTrends()}
+          className="flex items-center gap-1 rounded bg-slate-900 px-2 py-1 text-[11px] font-semibold text-cyan-300 hover:bg-slate-800 hover:text-white border border-slate-800 transition"
+          title="Open Periodic Table Trends & Metal Activity Series Modal"
+        >
+          <TrendingUp className="h-3 w-3 text-cyan-400" />
+          <span className="hidden md:inline">Trends & Activity</span>
+        </button>
+
         {/* Preset Molecule Marketplace */}
         <button
           onClick={() => useUIStore.getState().toggleMarketplace()}
@@ -184,7 +195,7 @@ export const WorkspaceToolbar: React.FC = () => {
         <button
           onClick={redo}
           disabled={!canRedo}
-          title="Redo (Ctrl+Shift+Z)"
+          title="Redo (Ctrl+Y / Ctrl+Shift+Z)"
           className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white disabled:opacity-30"
         >
           <Redo2 className="h-3.5 w-3.5" />
@@ -281,6 +292,7 @@ export const WorkspaceToolbar: React.FC = () => {
           <option value="STICK">Stick</option>
           <option value="WIREFRAME">Wireframe</option>
           <option value="ATOMIC_NUCLEUS">Atomic Nucleus & Electrons</option>
+          <option value="ELECTRON_CLOUD">Electron / Ion Cloud (Probability Density)</option>
         </select>
 
         <button

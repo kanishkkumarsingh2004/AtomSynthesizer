@@ -4,6 +4,7 @@ export interface UIState {
   periodicTableOpen: boolean;
   inspectorOpen: boolean;
   marketplaceOpen: boolean;
+  periodicTrendsOpen: boolean;
   elementSearchQuery: string;
   activeBottomTab: 'molecules' | 'analysis' | 'console';
   toastMessage: string | null;
@@ -15,6 +16,8 @@ export interface UIState {
   toggleInspector: () => void;
   setMarketplaceOpen: (open: boolean) => void;
   toggleMarketplace: () => void;
+  setPeriodicTrendsOpen: (open: boolean) => void;
+  togglePeriodicTrends: () => void;
   setElementSearchQuery: (query: string) => void;
   setActiveBottomTab: (tab: 'molecules' | 'analysis' | 'console') => void;
   showToast: (msg: string) => void;
@@ -27,6 +30,7 @@ export const useUIStore = create<UIState>((set) => ({
   periodicTableOpen: true,
   inspectorOpen: true,
   marketplaceOpen: false,
+  periodicTrendsOpen: false,
   elementSearchQuery: '',
   activeBottomTab: 'molecules',
   toastMessage: null,
@@ -38,6 +42,8 @@ export const useUIStore = create<UIState>((set) => ({
   toggleInspector: () => set((state) => ({ inspectorOpen: !state.inspectorOpen })),
   setMarketplaceOpen: (open) => set({ marketplaceOpen: open }),
   toggleMarketplace: () => set((state) => ({ marketplaceOpen: !state.marketplaceOpen })),
+  setPeriodicTrendsOpen: (open) => set({ periodicTrendsOpen: open }),
+  togglePeriodicTrends: () => set((state) => ({ periodicTrendsOpen: !state.periodicTrendsOpen })),
   setElementSearchQuery: (query) => set({ elementSearchQuery: query }),
   setActiveBottomTab: (tab) => set({ activeBottomTab: tab }),
   showToast: (msg) => set({ toastMessage: msg }),

@@ -2,8 +2,9 @@ import { openDB, IDBPDatabase } from 'idb';
 import { Molecule } from '../../domain/molecular/Molecule';
 
 const DB_NAME = 'AtomSynthesizerDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_MOLECULES = 'molecules';
+const STORE_REACTIONS = 'reactions';
 
 export interface SavedProjectRecord {
   id: string;
@@ -26,6 +27,9 @@ class PersistenceServiceImpl {
         upgrade(db) {
           if (!db.objectStoreNames.contains(STORE_MOLECULES)) {
             db.createObjectStore(STORE_MOLECULES, { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains(STORE_REACTIONS)) {
+            db.createObjectStore(STORE_REACTIONS, { keyPath: 'id' });
           }
         }
       });
@@ -64,6 +68,16 @@ class PersistenceServiceImpl {
   public async deleteProject(id: string): Promise<void> {
     const db = await this.getDB();
     await db.delete(STORE_MOLECULES, id);
+  }
+
+  public async saveReactionRecord(record: any): Promise<void> {
+    const db = await this.getDB();
+    await db.put(STORE_REACTIONS, record);
+  }
+
+  public async listReactionRecords(): Promise<any[]> {
+    const db = await this.getDB();
+    return db.getAll(STORE_REACTIONS);
   }
 }
 

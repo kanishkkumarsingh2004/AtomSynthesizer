@@ -3,10 +3,11 @@ import { Atom } from '../../domain/molecular/Atom';
 import { Bond } from '../../domain/molecular/Bond';
 import { MolecularGraph } from '../../domain/molecular/MolecularGraph';
 import { AtomId } from '../../domain/molecular/MolecularTypes';
+import { useMoleculeStore } from '../../stores/moleculeStore';
 
 export class DeleteAtomCommand implements Command {
   public readonly description: string;
-  private graph: MolecularGraph;
+  public graph: MolecularGraph;
   private atomId: AtomId;
   private removedAtom?: Atom;
   private removedBonds: Bond[] = [];
@@ -25,6 +26,7 @@ export class DeleteAtomCommand implements Command {
     this.removedBonds = this.graph.getBondsForAtom(this.atomId).map((b) => ({ ...b }));
 
     this.graph.removeAtom(this.atomId);
+    useMoleculeStore.getState().setMolecule(this.graph.toMolecule());
   }
 
   public undo(): void {
@@ -34,5 +36,7 @@ export class DeleteAtomCommand implements Command {
     for (const bond of this.removedBonds) {
       this.graph.addBond(bond);
     }
+    useMoleculeStore.getState().setMolecule(this.graph.toMolecule());
   }
 }
+

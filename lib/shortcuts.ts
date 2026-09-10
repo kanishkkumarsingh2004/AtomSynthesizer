@@ -20,6 +20,7 @@ export const SHORTCUTS: ShortcutDefinition[] = [
   { key: 'Backspace', label: 'Delete Selected', action: 'deleteSelection' },
   { key: 'z', ctrlOrCmd: true, label: 'Undo', action: 'undo' },
   { key: 'z', ctrlOrCmd: true, shift: true, label: 'Redo', action: 'redo' },
+  { key: 'y', ctrlOrCmd: true, label: 'Redo', action: 'redo' },
   { key: 'f', label: 'Focus Selection', action: 'focusSelection' },
   { key: ' ', label: 'Toggle Live Physics & Vibrations (Space)', action: 'toggleLivePhysics' }
 ];

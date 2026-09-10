@@ -1,10 +1,11 @@
 import { Command } from './Command';
 import { MolecularGraph } from '../../domain/molecular/MolecularGraph';
 import { AtomId } from '../../domain/molecular/MolecularTypes';
+import { useMoleculeStore } from '../../stores/moleculeStore';
 
 export class ChangeChargeCommand implements Command {
   public readonly description: string;
-  private graph: MolecularGraph;
+  public graph: MolecularGraph;
   private atomId: AtomId;
   private oldCharge: number;
   private newCharge: number;
@@ -23,6 +24,7 @@ export class ChangeChargeCommand implements Command {
     if (atom) {
       atom.formalCharge = this.newCharge;
     }
+    useMoleculeStore.getState().setMolecule(this.graph.toMolecule());
   }
 
   public undo(): void {
@@ -30,5 +32,7 @@ export class ChangeChargeCommand implements Command {
     if (atom) {
       atom.formalCharge = this.oldCharge;
     }
+    useMoleculeStore.getState().setMolecule(this.graph.toMolecule());
   }
 }
+

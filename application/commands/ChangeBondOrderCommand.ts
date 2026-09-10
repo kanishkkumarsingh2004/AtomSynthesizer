@@ -1,10 +1,11 @@
 import { Command } from './Command';
 import { MolecularGraph } from '../../domain/molecular/MolecularGraph';
 import { BondId, BondOrder, BondType } from '../../domain/molecular/MolecularTypes';
+import { useMoleculeStore } from '../../stores/moleculeStore';
 
 export class ChangeBondOrderCommand implements Command {
   public readonly description: string;
-  private graph: MolecularGraph;
+  public graph: MolecularGraph;
   private bondId: BondId;
   private oldOrder: BondOrder;
   private oldType: BondType;
@@ -33,6 +34,7 @@ export class ChangeBondOrderCommand implements Command {
       bond.order = this.newOrder;
       bond.type = this.newType;
     }
+    useMoleculeStore.getState().setMolecule(this.graph.toMolecule());
   }
 
   public undo(): void {
@@ -41,5 +43,7 @@ export class ChangeBondOrderCommand implements Command {
       bond.order = this.oldOrder;
       bond.type = this.oldType;
     }
+    useMoleculeStore.getState().setMolecule(this.graph.toMolecule());
   }
 }
+

@@ -10,6 +10,7 @@ import { ExplosionPhysicsEngine } from '../chemistry/core/ExplosionPhysicsEngine
 import { MoveAtomCommand } from '../application/commands/MoveAtomCommand';
 import { ChangeBondOrderCommand } from '../application/commands/ChangeBondOrderCommand';
 import { ChangeChargeCommand } from '../application/commands/ChangeChargeCommand';
+import { CompositeCommand } from '../application/commands/CompositeCommand';
 import { MolecularGraph } from '../domain/molecular/MolecularGraph';
 
 export interface MoleculeState {
@@ -55,6 +56,8 @@ export const useMoleculeStore = create<MoleculeState>((set, get) => ({
     const optRes = GeometryOptimizationEngine.optimizeGeometry(finalMolecule, 40, 0.12);
     finalMolecule = optRes.optimizedMolecule;
 
+    (command as any).graph = MolecularGraph.fromMolecule(finalMolecule);
+
     set({ molecule: finalMolecule });
     useHistoryStore.getState().pushCommand(command);
     return atomId;
@@ -70,6 +73,7 @@ export const useMoleculeStore = create<MoleculeState>((set, get) => ({
     const { updatedMolecule, command, bondId } = MoleculeService.createBond(molecule, atomA, atomB, order, type);
     // Always snap into stable VSEPR geometry after bonding
     const optRes = GeometryOptimizationEngine.optimizeGeometry(updatedMolecule, 40, 0.12);
+    (command as any).graph = MolecularGraph.fromMolecule(optRes.optimizedMolecule);
     set({ molecule: optRes.optimizedMolecule });
     useHistoryStore.getState().pushCommand(command);
     return bondId;
@@ -89,6 +93,7 @@ export const useMoleculeStore = create<MoleculeState>((set, get) => ({
       updatedMol = res.updatedMolecule;
     }
 
+    (command as any).graph = MolecularGraph.fromMolecule(updatedMol);
     set({ molecule: updatedMol });
     useHistoryStore.getState().pushCommand(command);
   },
@@ -115,8 +120,10 @@ export const useMoleculeStore = create<MoleculeState>((set, get) => ({
     const { molecule } = get();
     const { updatedMolecule, commands } = MoleculeService.deleteSelection(molecule, atomIds, bondIds);
     set({ molecule: updatedMolecule });
-    for (const cmd of commands) {
-      useHistoryStore.getState().pushCommand(cmd);
+    if (commands.length === 1) {
+      useHistoryStore.getState().pushCommand(commands[0]);
+    } else if (commands.length > 1) {
+      useHistoryStore.getState().pushCommand(new CompositeCommand('Delete Selection', commands));
     }
   },
 

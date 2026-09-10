@@ -6,6 +6,7 @@ import { AtomRenderer } from './AtomRenderer';
 import { BondRenderer } from './BondRenderer';
 import { MolecularLabels } from './MolecularLabels';
 import { AtomicNucleusRenderer } from './AtomicNucleusRenderer';
+import { ElectronCloudRenderer } from './ElectronCloudRenderer';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 
 interface MoleculeRendererProps {
@@ -20,6 +21,15 @@ export const MoleculeRenderer: React.FC<MoleculeRendererProps> = ({ molecule }) 
     return (
       <group>
         <AtomicNucleusRenderer molecule={molecule} />
+        <MolecularLabels molecule={molecule} />
+      </group>
+    );
+  }
+
+  if (renderingMode === 'ELECTRON_CLOUD') {
+    return (
+      <group>
+        <ElectronCloudRenderer molecule={molecule} />
         <MolecularLabels molecule={molecule} />
       </group>
     );

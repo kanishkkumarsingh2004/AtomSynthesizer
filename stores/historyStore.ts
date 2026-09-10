@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Command } from '../application/commands/Command';
+import { useSelectionStore } from './selectionStore';
 
 export interface HistoryState {
   undoStack: Command[];
@@ -36,6 +37,7 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
 
     const command = undoStack[undoStack.length - 1];
     command.undo();
+    useSelectionStore.getState().clearSelection();
 
     const newUndo = undoStack.slice(0, undoStack.length - 1);
     const newRedo = [...redoStack, command];
@@ -54,6 +56,7 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
 
     const command = redoStack[redoStack.length - 1];
     command.execute();
+    useSelectionStore.getState().clearSelection();
 
     const newRedo = redoStack.slice(0, redoStack.length - 1);
     const newUndo = [...undoStack, command];
@@ -66,3 +69,4 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
     });
   }
 }));
+

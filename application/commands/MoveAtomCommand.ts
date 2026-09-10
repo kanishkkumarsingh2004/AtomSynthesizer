@@ -1,10 +1,11 @@
 import { Command } from './Command';
 import { MolecularGraph } from '../../domain/molecular/MolecularGraph';
 import { AtomId, Vector3D } from '../../domain/molecular/MolecularTypes';
+import { useMoleculeStore } from '../../stores/moleculeStore';
 
 export class MoveAtomCommand implements Command {
   public readonly description: string;
-  private graph: MolecularGraph;
+  public graph: MolecularGraph;
   private atomId: AtomId;
   private oldPosition: Vector3D;
   private newPosition: Vector3D;
@@ -22,6 +23,7 @@ export class MoveAtomCommand implements Command {
     if (atom) {
       atom.position = { ...this.newPosition };
     }
+    useMoleculeStore.getState().setMolecule(this.graph.toMolecule());
   }
 
   public undo(): void {
@@ -29,5 +31,7 @@ export class MoveAtomCommand implements Command {
     if (atom) {
       atom.position = { ...this.oldPosition };
     }
+    useMoleculeStore.getState().setMolecule(this.graph.toMolecule());
   }
 }
+

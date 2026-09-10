@@ -8,6 +8,7 @@ import { ValidationIssue } from '../../domain/validation/ValidationResult';
 import { Activity, ShieldAlert, CheckCircle2, AlertTriangle, Thermometer, Compass, Zap, Waves } from 'lucide-react';
 
 import { SubscriptFormula } from '../common/SubscriptFormula';
+import { MoleculeTrendsInspector } from './MoleculeTrendsInspector';
 
 export const MoleculeInspector: React.FC = () => {
   const molecule = useMoleculeStore((state) => state.molecule);
@@ -407,6 +408,9 @@ export const MoleculeInspector: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* 3D Molecular Availability & Reaction Log Inspector */}
+      <MoleculeTrendsInspector />
     </div>
   );
 };

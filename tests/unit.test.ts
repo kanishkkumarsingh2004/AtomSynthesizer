@@ -71,7 +71,34 @@ function runTests() {
   assert(parsedMol.bonds.length === origMol.bonds.length, 'Bond count matches');
   console.log('  ✅ Serialization tests passed.');
 
+  // Test 6: Undo & Redo Integration
+  console.log('6. Testing Undo & Redo Store Integration...');
+  const { useMoleculeStore } = require('../stores/moleculeStore');
+  const { useHistoryStore } = require('../stores/historyStore');
+  const { SHORTCUTS } = require('../lib/shortcuts');
+
+  useMoleculeStore.getState().createEmptyMolecule('Test Mol');
+  assert(useMoleculeStore.getState().molecule.atoms.length === 0, 'Initial molecule is empty');
+  assert(useHistoryStore.getState().canUndo === false, 'canUndo is false initially');
+
+  useMoleculeStore.getState().addAtom(6, { x: 0, y: 0, z: 0 });
+  assert(useMoleculeStore.getState().molecule.atoms.length === 1, 'Molecule has 1 atom after addAtom');
+  assert(useHistoryStore.getState().canUndo === true, 'canUndo is true after addAtom');
+
+  useHistoryStore.getState().undo();
+  assert(useMoleculeStore.getState().molecule.atoms.length === 0, 'Molecule has 0 atoms after undo');
+  assert(useHistoryStore.getState().canRedo === true, 'canRedo is true after undo');
+
+  useHistoryStore.getState().redo();
+  assert(useMoleculeStore.getState().molecule.atoms.length === 1, 'Molecule has 1 atom after redo');
+  assert(useHistoryStore.getState().canUndo === true, 'canUndo is true after redo');
+
+  const redoYShortcut = SHORTCUTS.find((s: any) => s.key === 'y' && s.ctrlOrCmd && s.action === 'redo');
+  assert(redoYShortcut !== undefined, 'Ctrl+Y Redo shortcut registered in SHORTCUTS');
+  console.log('  ✅ Undo & Redo tests passed.');
+
   console.log('\n🎉 ALL EXTENDED UNIT TESTS PASSED SUCCESSFULLY!');
 }
 
 runTests();
+

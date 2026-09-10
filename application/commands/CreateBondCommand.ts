@@ -1,10 +1,11 @@
 import { Command } from './Command';
 import { Bond } from '../../domain/molecular/Bond';
 import { MolecularGraph } from '../../domain/molecular/MolecularGraph';
+import { useMoleculeStore } from '../../stores/moleculeStore';
 
 export class CreateBondCommand implements Command {
   public readonly description: string;
-  private graph: MolecularGraph;
+  public graph: MolecularGraph;
   private bond: Bond;
 
   constructor(graph: MolecularGraph, bond: Bond) {
@@ -15,9 +16,12 @@ export class CreateBondCommand implements Command {
 
   public execute(): void {
     this.graph.addBond(this.bond);
+    useMoleculeStore.getState().setMolecule(this.graph.toMolecule());
   }
 
   public undo(): void {
     this.graph.removeBond(this.bond.id);
+    useMoleculeStore.getState().setMolecule(this.graph.toMolecule());
   }
 }
+
